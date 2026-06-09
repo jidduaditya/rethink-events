@@ -5,8 +5,8 @@ import { notFound } from "next/navigation";
 import { Clock, MapPin } from "lucide-react";
 import { useSession } from "@/hooks/use-session";
 import { useEvent } from "@/hooks/use-event";
-import { useRsvps } from "@/hooks/use-rsvps";
-import { useRsvp } from "@/hooks/use-rsvp";
+import { useRegistrations } from "@/hooks/use-registrations";
+import { useRegistration } from "@/hooks/use-registration";
 import { RsvpButton } from "@/components/events/rsvp-button";
 import { ConflictWarning } from "@/components/events/conflict-warning";
 import { CapacityWarning } from "@/components/events/capacity-warning";
@@ -25,21 +25,21 @@ export default function EventDetailPage({
   const userId = session?.user?.id;
 
   const { data: eventData, isLoading, isError } = useEvent(id);
-  const { data: userRsvps } = useRsvps(userId);
+  const { data: userRegs } = useRegistrations(userId);
 
   const event = eventData?.event;
   const attendeeCount = eventData?.attendeeCount ?? 0;
 
-  const { rsvp, cancel, isRsvping } = useRsvp(event, userId, userRsvps);
+  const { rsvp, cancel, isRsvping } = useRegistration(event, userId, userRegs);
 
-  const isGoing = userRsvps?.some((r) => r.event_id === id) ?? false;
+  const isGoing = userRegs?.some((r) => r.event_id === id) ?? false;
 
   const conflictingEvent = React.useMemo(() => {
-    if (!event || !userRsvps) return null;
-    return userRsvps.find(
+    if (!event || !userRegs) return null;
+    return userRegs.find(
       (r) => r.event_id !== id && hasTimeOverlap(r.event, event)
     ) ?? null;
-  }, [event, userRsvps, id]);
+  }, [event, userRegs, id]);
 
   const isFull =
     event?.capacity != null && attendeeCount >= event.capacity && !isGoing;

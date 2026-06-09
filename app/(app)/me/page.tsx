@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useSession } from "@/hooks/use-session";
-import { useRsvps } from "@/hooks/use-rsvps";
+import { useRegistrations } from "@/hooks/use-registrations";
 import { EventCard } from "@/components/events/event-card";
 import { BRAND } from "@/lib/brand";
 import { EventStatusBadge } from "@/components/events/event-status-badge";
@@ -38,7 +38,7 @@ export default function MyEventsPage() {
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
-  const { data: rsvps, isLoading: rsvpsLoading } = useRsvps(userId);
+  const { data: rsvps, isLoading: rsvpsLoading } = useRegistrations(userId);
   const { data: myEvents, isLoading: myEventsLoading } = useMyEvents(userId);
 
   // Filter RSVPs to approved events only
