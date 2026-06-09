@@ -19,9 +19,22 @@ export function useUpdateEvent() {
       const user = await requireAuth();
       if (!user) throw new Error("Not authenticated");
 
+      // Keep register_url consistent with the check constraint:
+      // native events must store null, external events keep their URL.
+      const normalized =
+        updates.register_mode !== undefined
+          ? {
+              ...updates,
+              register_url:
+                updates.register_mode === "external"
+                  ? updates.register_url ?? null
+                  : null,
+            }
+          : updates;
+
       const { data, error } = await supabase
         .from("events")
-        .update(updates)
+        .update(normalized)
         .eq("id", eventId)
         .select()
         .single();

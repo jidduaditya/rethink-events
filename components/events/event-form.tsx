@@ -2,7 +2,7 @@
 
 import { useState, useCallback, type FormEvent } from "react";
 import { Wifi, MapPin } from "lucide-react";
-import type { Event, EventType } from "@/lib/types";
+import type { Event, EventType, RegisterMode } from "@/lib/types";
 import { validateEventForm } from "@/lib/validators";
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
@@ -17,6 +17,13 @@ type EventFormData = {
   location_name: string;
   location_address: string;
   capacity: string;
+  city: string;
+  image_url: string;
+  speaker_name: string;
+  speaker_bio: string;
+  speaker_photo_url: string;
+  register_mode: RegisterMode;
+  register_url: string;
 };
 
 export type PreparedEventData = {
@@ -30,9 +37,17 @@ export type PreparedEventData = {
   location_name: string | null;
   location_address: string | null;
   capacity: number | null;
+  city: string | null;
+  image_url: string | null;
+  speaker_name: string | null;
+  speaker_bio: string | null;
+  speaker_photo_url: string | null;
+  register_mode: RegisterMode;
+  register_url: string | null;
 };
 
 function prepareFormData(form: EventFormData): PreparedEventData {
+  const trimOrNull = (v: string) => (v.trim() ? v.trim() : null);
   return {
     title: form.title.trim(),
     description: form.description.trim(),
@@ -44,6 +59,13 @@ function prepareFormData(form: EventFormData): PreparedEventData {
     location_name: form.event_type === "offline" ? form.location_name.trim() : null,
     location_address: form.event_type === "offline" && form.location_address.trim() ? form.location_address.trim() : null,
     capacity: form.capacity.trim() ? parseInt(form.capacity, 10) : null,
+    city: trimOrNull(form.city),
+    image_url: trimOrNull(form.image_url),
+    speaker_name: trimOrNull(form.speaker_name),
+    speaker_bio: trimOrNull(form.speaker_bio),
+    speaker_photo_url: trimOrNull(form.speaker_photo_url),
+    register_mode: form.register_mode,
+    register_url: form.register_mode === "external" ? trimOrNull(form.register_url) : null,
   };
 }
 
@@ -72,12 +94,19 @@ export function EventForm({ event, onSubmit, isSubmitting }: EventFormProps) {
     location_name: event?.location_name ?? "",
     location_address: event?.location_address ?? "",
     capacity: event?.capacity?.toString() ?? "",
+    city: event?.city ?? "",
+    image_url: event?.image_url ?? "",
+    speaker_name: event?.speaker_name ?? "",
+    speaker_bio: event?.speaker_bio ?? "",
+    speaker_photo_url: event?.speaker_photo_url ?? "",
+    register_mode: event?.register_mode ?? "native",
+    register_url: event?.register_url ?? "",
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof EventFormData, string>>>({});
 
   const update = useCallback(
-    (field: keyof EventFormData, value: string) => {
+    <K extends keyof EventFormData>(field: K, value: EventFormData[K]) => {
       setForm((prev) => ({ ...prev, [field]: value }));
       setErrors((prev) => {
         const next = { ...prev };
@@ -175,6 +204,41 @@ export function EventForm({ event, onSubmit, isSubmitting }: EventFormProps) {
         </div>
       </div>
 
+      {/* City + Image URL */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div>
+          <label className="block font-mono text-label-mono uppercase font-semibold text-on-surface-variant mb-2">
+            CITY (OPTIONAL)
+          </label>
+          <input
+            type="text"
+            list="city-options"
+            value={form.city}
+            onChange={(e) => update("city", e.target.value)}
+            placeholder="Bangalore"
+            className={inputBase}
+            maxLength={100}
+          />
+          <datalist id="city-options">
+            {BRAND.cities.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </div>
+        <div>
+          <label className="block font-mono text-label-mono uppercase font-semibold text-on-surface-variant mb-2">
+            IMAGE URL (OPTIONAL)
+          </label>
+          <input
+            type="url"
+            value={form.image_url}
+            onChange={(e) => update("image_url", e.target.value)}
+            placeholder="https://..."
+            className={inputBase}
+          />
+        </div>
+      </div>
+
       {/* Event Format toggle */}
       <div className="mb-6">
         <label className="block font-mono text-label-mono uppercase font-semibold text-on-surface-variant mb-2">
@@ -262,7 +326,7 @@ export function EventForm({ event, onSubmit, isSubmitting }: EventFormProps) {
       )}
 
       {/* Capacity */}
-      <div className="mb-8">
+      <div className="mb-6">
         <label className="block font-mono text-label-mono uppercase font-semibold text-on-surface-variant mb-2">
           CAPACITY (OPTIONAL)
         </label>
@@ -277,6 +341,98 @@ export function EventForm({ event, onSubmit, isSubmitting }: EventFormProps) {
           <p className="mt-1 text-error text-label-data font-mono">{errors.capacity}</p>
         )}
       </div>
+
+      {/* Speaker block */}
+      <div className="mb-6">
+        <label className="block font-mono text-label-mono uppercase font-semibold text-on-surface-variant mb-2">
+          SPEAKER NAME (OPTIONAL)
+        </label>
+        <input
+          type="text"
+          value={form.speaker_name}
+          onChange={(e) => update("speaker_name", e.target.value)}
+          className={inputBase}
+          maxLength={200}
+        />
+      </div>
+      <div className="mb-6">
+        <label className="block font-mono text-label-mono uppercase font-semibold text-on-surface-variant mb-2">
+          SPEAKER BIO (OPTIONAL)
+        </label>
+        <textarea
+          value={form.speaker_bio}
+          onChange={(e) => update("speaker_bio", e.target.value)}
+          rows={3}
+          className={cn(inputBase, "resize-y")}
+          maxLength={2000}
+        />
+      </div>
+      <div className="mb-6">
+        <label className="block font-mono text-label-mono uppercase font-semibold text-on-surface-variant mb-2">
+          SPEAKER PHOTO URL (OPTIONAL)
+        </label>
+        <input
+          type="url"
+          value={form.speaker_photo_url}
+          onChange={(e) => update("speaker_photo_url", e.target.value)}
+          placeholder="https://..."
+          className={inputBase}
+        />
+      </div>
+
+      {/* Register mode toggle */}
+      <div className="mb-6">
+        <label className="block font-mono text-label-mono uppercase font-semibold text-on-surface-variant mb-2">
+          REGISTRATION
+        </label>
+        <div className="flex gap-0">
+          <button
+            type="button"
+            onClick={() => {
+              update("register_mode", "native");
+              update("register_url", "");
+            }}
+            className={cn(
+              "px-6 py-3 font-mono text-label-mono uppercase font-semibold transition-colors",
+              form.register_mode === "native"
+                ? "bg-primary text-on-primary"
+                : "bg-surface border-2 border-on-background"
+            )}
+          >
+            RSVP HERE
+          </button>
+          <button
+            type="button"
+            onClick={() => update("register_mode", "external")}
+            className={cn(
+              "px-6 py-3 font-mono text-label-mono uppercase font-semibold transition-colors",
+              form.register_mode === "external"
+                ? "bg-on-background text-surface"
+                : "bg-surface border-2 border-on-background"
+            )}
+          >
+            EXTERNAL LINK
+          </button>
+        </div>
+      </div>
+
+      {form.register_mode === "external" && (
+        <div className="mb-8">
+          <label className="block font-mono text-label-mono uppercase font-semibold text-on-surface-variant mb-2">
+            REGISTRATION URL
+          </label>
+          <input
+            type="url"
+            value={form.register_url}
+            onChange={(e) => update("register_url", e.target.value)}
+            placeholder="https://lu.ma/..."
+            className={inputBase}
+          />
+          {errors.register_url && (
+            <p className="mt-1 text-error text-label-data font-mono">{errors.register_url}</p>
+          )}
+        </div>
+      )}
 
       {/* Submit */}
       <button

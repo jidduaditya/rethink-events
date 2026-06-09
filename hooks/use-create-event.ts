@@ -3,9 +3,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { requireAuth } from "@/lib/guards";
-import type { Event } from "@/lib/types";
+import type { Event, RegisterMode } from "@/lib/types";
 
-type CreateEventInput = Omit<Event, "id" | "created_at" | "status" | "created_by">;
+type CreateEventInput = Omit<
+  Event,
+  "id" | "created_at" | "status" | "created_by" | "register_mode"
+> & {
+  register_mode: RegisterMode;
+};
 
 export function useCreateEvent() {
   const supabase = createClient();
@@ -16,10 +21,14 @@ export function useCreateEvent() {
       const user = await requireAuth();
       if (!user) throw new Error("Not authenticated");
 
+      const register_mode = input.register_mode ?? "native";
+
       const { data, error } = await supabase
         .from("events")
         .insert({
           ...input,
+          register_mode,
+          register_url: register_mode === "external" ? input.register_url ?? null : null,
           created_by: user.id,
           status: "pending",
         })

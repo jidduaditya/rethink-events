@@ -1,4 +1,4 @@
-import type { EventType } from "@/lib/types";
+import type { EventType, RegisterMode } from "@/lib/types";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -21,6 +21,13 @@ type EventFormData = {
   location_name: string;
   location_address: string;
   capacity: string;
+  city: string;
+  image_url: string;
+  speaker_name: string;
+  speaker_bio: string;
+  speaker_photo_url: string;
+  register_mode: RegisterMode;
+  register_url: string;
 };
 
 type ValidationResult = {
@@ -60,7 +67,7 @@ export function validateEventForm(data: EventFormData): ValidationResult {
 
   // Event type specific
   if (data.event_type === "online") {
-    if (!data.meet_url.trim()) {
+    if (!data.meet_url?.trim()) {
       errors.meet_url = "Meeting URL is required for online events";
     } else {
       try {
@@ -72,17 +79,26 @@ export function validateEventForm(data: EventFormData): ValidationResult {
   }
 
   if (data.event_type === "offline") {
-    if (!data.location_name.trim()) {
+    if (!data.location_name?.trim()) {
       errors.location_name = "Venue name is required for offline events";
     }
   }
 
   // Capacity
-  if (data.capacity.trim()) {
+  if (data.capacity?.trim()) {
     const cap = parseInt(data.capacity, 10);
     if (isNaN(cap) || cap < 1) {
       errors.capacity = "Capacity must be at least 1";
     }
+  }
+
+  // Registration mode
+  if (data.register_mode === "external") {
+    if (!data.register_url || !/^https?:\/\//.test(data.register_url)) {
+      errors.register_url = "External events need a valid http(s) registration URL.";
+    }
+  } else if (data.register_url) {
+    errors.register_url = "Native events must not have a registration URL.";
   }
 
   return {
