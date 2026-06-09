@@ -3,8 +3,8 @@ export const BRAND = {
   tagline: "No permission required.",
   cities: ["Bangalore", "Mumbai", "Pune", "Hyderabad", "Delhi"],
   hero: {
-    heading: "Three meetups. One open seat.",
-    authCard: "Reserve a spot",
+    heading: "Amazing events. Amazing people. Amazing chats.",
+    authCard: "LOG IN TO THE RETHINKVERSE NOW!",
     authButton: "SEND CODE",
   },
   feed: {
@@ -36,6 +36,6 @@ export const BRAND = {
   manifesto: "We don't do panels. We do arguments. Bring data or leave.",
   footer: {
     links: ["TERMS", "PRIVACY", "CAREERS", "CONTACT"],
-    copyright: "No permission required.",
+    copyright: "\u00A92024 RETHINK EVENTS. NO PERMISSION REQUIRED.",
   },
 } as const;
