@@ -26,7 +26,26 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Refresh session -- important for Server Components
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const path = request.nextUrl.pathname;
+  const isPublicPath =
+    path.startsWith("/login") ||
+    path.startsWith("/auth") ||
+    path.startsWith("/not-allowed");
+
+  if (user && !isPublicPath) {
+    const { data: allowed } = await supabase.rpc("is_allowlisted", {
+      p_email: user.email ?? "",
+    });
+    if (!allowed) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/not-allowed";
+      return NextResponse.redirect(url);
+    }
+  }
 
   return supabaseResponse;
 }
