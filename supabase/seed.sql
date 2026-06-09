@@ -107,3 +107,58 @@ begin
 
 end;
 $$;
+
+-- ============================================================
+-- V0 ADDITIONS — allowlist + v0 event fields
+-- These statements run AFTER the block above so all ids exist.
+-- ============================================================
+
+-- --------------------------------------------------------
+-- ALLOWLIST
+-- Lets the login gate admit dev logins without a manual step.
+-- The seeded profile (admin@rethink.dev) and the product owner
+-- email are both included. on conflict = safe to re-run.
+-- --------------------------------------------------------
+insert into public.allowlist (email, source) values
+  ('jiddu.aditya@gmail.com', 'manual'),
+  ('admin@rethink.dev',       'manual')
+on conflict (email) do nothing;
+
+-- --------------------------------------------------------
+-- ENRICH EVENTS WITH V0 DISPLAY FIELDS
+-- --------------------------------------------------------
+
+-- Event 1: online — no city (online events have no venue city)
+-- Add speaker so the detail page has a real speaker block to click.
+update public.events
+   set speaker_name = 'Priya Nair',
+       speaker_bio  = 'AI researcher at a Bangalore-based deep-tech startup. Building multi-agent systems since GPT-3.'
+ where id = 'a0000000-0000-0000-0000-000000000001';
+
+-- Event 2: offline Bangalore meetup — set city + speaker
+update public.events
+   set city         = 'Bangalore',
+       speaker_name = 'Arjun Mehta',
+       speaker_bio  = 'Founder, Stackwire. Shipped 4 products in the last 2 years. Talks about building in public.'
+ where id = 'a0000000-0000-0000-0000-000000000002';
+
+-- Event 3: past online AMA — no city needed; no speaker change
+-- (no enrichment required — past events are low-priority for display)
+
+-- Event 4: pending offline Mumbai — set city so it shows correctly if approved
+update public.events
+   set city = 'Mumbai'
+ where id = 'a0000000-0000-0000-0000-000000000004';
+
+-- Event 5: rejected — no enrichment needed
+
+-- --------------------------------------------------------
+-- ONE EXTERNAL-REGISTRATION EVENT
+-- Flip event 1 (approved, future, online) to external so the
+-- hybrid registration path is testable in dev.
+-- Constraint: register_mode = 'external' requires register_url NOT NULL.
+-- --------------------------------------------------------
+update public.events
+   set register_mode = 'external',
+       register_url  = 'https://forms.gle/example-rethink-event'
+ where id = 'a0000000-0000-0000-0000-000000000001';
