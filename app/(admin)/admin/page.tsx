@@ -8,6 +8,7 @@ import {
 } from "@/hooks/use-admin";
 import { AdminStatsPanel } from "@/components/admin/admin-stats-panel";
 import { ApprovalCard } from "@/components/admin/approval-card";
+import { AllowlistPanel } from "@/components/admin/allowlist-panel";
 
 export default function AdminPage() {
   const { data: stats, isLoading: isLoadingStats } = useAdminStats();
@@ -94,6 +95,11 @@ export default function AdminPage() {
             </button>
           </div>
         )}
+
+        {/* Whitelist management */}
+        <div className="mt-stack-xl">
+          <AllowlistPanel />
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,16 @@
 import type { EventType } from "@/lib/types";
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function normalizeEmails(raw: string): string[] {
+  const seen = new Set<string>();
+  for (const token of raw.split(/[,\n]/)) {
+    const email = token.trim().toLowerCase();
+    if (EMAIL_RE.test(email)) seen.add(email);
+  }
+  return [...seen];
+}
+
 type EventFormData = {
   title: string;
   description: string;
