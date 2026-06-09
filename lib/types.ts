@@ -43,21 +43,6 @@ export type EventWithOrganizer = Event & {
   organizer: Pick<Profile, "id" | "full_name" | "email">;
 };
 
-export type Rsvp = {
-  id: string;
-  user_id: string;
-  event_id: string;
-  created_at: string;
-};
-
-export type RsvpWithEvent = Rsvp & {
-  event: Event;
-};
-
-export type CreateRsvpResult = {
-  success: boolean;
-  reason?: "conflict" | "full" | "past" | "not_approved";
-};
 
 export type RegistrationKind = "native" | "external";
 
@@ -100,11 +85,6 @@ export type Database = {
         };
         Update: Partial<Omit<Event, "id" | "created_at" | "created_by">>;
       };
-      rsvps: {
-        Row: Rsvp;
-        Insert: Omit<Rsvp, "id" | "created_at">;
-        Update: never;
-      };
       registrations: {
         Row: Registration;
         Insert: Omit<Registration, "id" | "created_at">;
@@ -117,10 +97,6 @@ export type Database = {
       };
     };
     Functions: {
-      create_rsvp: {
-        Args: { p_user_id: string; p_event_id: string };
-        Returns: CreateRsvpResult;
-      };
       create_registration: {
         Args: { p_user_id: string; p_event_id: string };
         Returns: CreateRegistrationResult;

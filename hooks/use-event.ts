@@ -22,7 +22,7 @@ export function useEvent(eventId: string | undefined) {
           .eq("id", eventId!)
           .single(),
         supabase
-          .from("rsvps")
+          .from("registrations")
           .select("id", { count: "exact", head: true })
           .eq("event_id", eventId!),
       ]);
