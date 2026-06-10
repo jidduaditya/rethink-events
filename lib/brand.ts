@@ -14,6 +14,8 @@ export const BRAND = {
   rsvp: {
     going: "I'M GOING",
     cancel: "CAN'T MAKE IT",
+    externalRegister: "REGISTER ON HOST'S PAGE",
+    externalRegistered: "REGISTERED. OPEN PAGE",
   },
   create: {
     header: "NEW EVENT",
