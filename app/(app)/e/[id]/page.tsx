@@ -1,13 +1,15 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Clock, MapPin } from "lucide-react";
 import { useSession } from "@/hooks/use-session";
 import { useEvent } from "@/hooks/use-event";
 import { useRegistrations } from "@/hooks/use-registrations";
 import { useRegistration } from "@/hooks/use-registration";
-import { RsvpButton } from "@/components/events/rsvp-button";
+import { RegisterAction } from "@/components/events/register-action";
+import { SpeakerBlock } from "@/components/events/speaker-block";
 import { ConflictWarning } from "@/components/events/conflict-warning";
 import { CapacityWarning } from "@/components/events/capacity-warning";
 import { AttendeeCount } from "@/components/events/attendee-count";
@@ -43,6 +45,8 @@ export default function EventDetailPage({
 
   const isFull =
     event?.capacity != null && attendeeCount >= event.capacity && !isGoing;
+
+  const isExternal = event?.register_mode === "external";
 
   // Loading skeleton
   if (isLoading) {
@@ -92,7 +96,18 @@ export default function EventDetailPage({
   return (
     <div className="dot-grid min-h-[80vh]">
       {/* Hero section */}
-      <div className="relative aspect-video w-full border-4 border-on-background bg-surface-dim">
+      <div className="group relative aspect-video w-full overflow-hidden border-4 border-on-background bg-surface-dim">
+        {event.image_url ? (
+          <Image
+            src={event.image_url}
+            alt={event.title}
+            fill
+            className="object-cover grayscale transition-all duration-500 group-hover:grayscale-0"
+            unoptimized
+          />
+        ) : (
+          <div className="h-full w-full bg-surface-dim grayscale transition-all duration-500 group-hover:grayscale-0" />
+        )}
         {/* Title block overlay */}
         <div className="absolute bottom-0 left-0 w-3/4 border-r-4 border-t-4 border-on-background bg-primary-container p-stack-md md:w-1/2">
           <h1 className="font-serif text-headline-lg font-black uppercase text-on-primary">
@@ -116,6 +131,9 @@ export default function EventDetailPage({
           <div className="font-serif text-body-lg whitespace-pre-wrap text-on-surface">
             {event.description}
           </div>
+
+          {/* Speaker */}
+          <SpeakerBlock event={event} />
         </div>
 
         {/* Right column -- RSVP sidebar */}
@@ -149,24 +167,27 @@ export default function EventDetailPage({
               </div>
             </div>
 
-            {/* RSVP button */}
-            <RsvpButton
+            {/* Register action -- native RSVP or external host page */}
+            <RegisterAction
               event={event}
               isGoing={isGoing}
-              onRsvp={() => rsvp(id)}
+              onRegister={() => rsvp(id)}
               onCancel={() => cancel(id)}
               isLoading={isRsvping}
               disabled={isFull && !isGoing}
             />
 
-            {/* Warnings */}
-            {conflictingEvent && (
-              <ConflictWarning conflictingEvent={conflictingEvent.event} />
+            {/* Warnings + attendee count -- native only.
+                Capacity/conflict/count are meaningless for external events. */}
+            {!isExternal && (
+              <>
+                {conflictingEvent && (
+                  <ConflictWarning conflictingEvent={conflictingEvent.event} />
+                )}
+                {isFull && <CapacityWarning />}
+                <AttendeeCount count={attendeeCount} />
+              </>
             )}
-            {isFull && <CapacityWarning />}
-
-            {/* Attendee count */}
-            <AttendeeCount count={attendeeCount} />
           </div>
         </div>
       </div>
