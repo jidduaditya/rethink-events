@@ -13,6 +13,7 @@ import { SpeakerBlock } from "@/components/events/speaker-block";
 import { ConflictWarning } from "@/components/events/conflict-warning";
 import { CapacityWarning } from "@/components/events/capacity-warning";
 import { AttendeeCount } from "@/components/events/attendee-count";
+import { AttendeesPanel } from "@/components/admin/attendees-panel";
 import { BRAND } from "@/lib/brand";
 import { formatEventTime } from "@/lib/utils";
 import { hasTimeOverlap } from "@/lib/guards";
@@ -191,6 +192,13 @@ export default function EventDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Host-only attendees management */}
+      {userId === event.created_by && (
+        <div className="mx-auto max-w-7xl px-grid-margin pb-stack-xl">
+          <AttendeesPanel event={event} />
+        </div>
+      )}
     </div>
   );
 }
