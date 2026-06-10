@@ -6,19 +6,35 @@ import type { EventWithOrganizer } from "@/lib/types";
 
 const PAGE_SIZE = 20;
 
-export function useEvents() {
+export function useEvents(filters?: {
+  city?: string;
+  format?: "all" | "online" | "offline";
+}) {
   const supabase = createClient();
 
   return useInfiniteQuery<EventWithOrganizer[]>({
-    queryKey: ["events", "feed"],
+    queryKey: [
+      "events",
+      "feed",
+      filters?.city ?? "all",
+      filters?.format ?? "all",
+    ],
     queryFn: async ({ pageParam }) => {
       let query = supabase
         .from("events")
         .select("*, organizer:profiles!created_by(id, full_name, email)")
         .eq("status", "approved")
-        .gt("starts_at", new Date().toISOString())
+        .gt("ends_at", new Date().toISOString())
         .order("starts_at", { ascending: true })
         .limit(PAGE_SIZE);
+
+      if (filters?.city && filters.city !== "all") {
+        query = query.eq("city", filters.city);
+      }
+
+      if (filters?.format && filters.format !== "all") {
+        query = query.eq("event_type", filters.format);
+      }
 
       if (pageParam) {
         query = query.gt("starts_at", pageParam as string);
