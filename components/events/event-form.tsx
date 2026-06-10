@@ -414,6 +414,9 @@ export function EventForm({ event, onSubmit, isSubmitting }: EventFormProps) {
             EXTERNAL LINK
           </button>
         </div>
+        {form.register_mode !== "external" && errors.register_url && (
+          <p className="mt-1 text-error text-label-data font-mono">{errors.register_url}</p>
+        )}
       </div>
 
       {form.register_mode === "external" && (

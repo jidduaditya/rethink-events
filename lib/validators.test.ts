@@ -30,4 +30,20 @@ describe("validateEventForm register rules", () => {
     } as Partial<EventFormInput> as EventFormInput);
     expect(errors.register_url).toBeTruthy();
   });
+  it("accepts a valid https register_url when mode is external", () => {
+    const { errors } = validateEventForm({
+      title: "T", description: "D", event_type: "online",
+      starts_at: "2030-01-01T10:00", ends_at: "2030-01-01T11:00",
+      register_mode: "external", register_url: "https://lu.ma/event",
+    } as Partial<EventFormInput> as EventFormInput);
+    expect(errors.register_url).toBeFalsy();
+  });
+  it("accepts empty register_url when mode is native", () => {
+    const { errors } = validateEventForm({
+      title: "T", description: "D", event_type: "online",
+      starts_at: "2030-01-01T10:00", ends_at: "2030-01-01T11:00",
+      register_mode: "native", register_url: "",
+    } as Partial<EventFormInput> as EventFormInput);
+    expect(errors.register_url).toBeFalsy();
+  });
 });
