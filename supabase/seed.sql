@@ -100,10 +100,10 @@ begin
   -- RSVPS (only for approved upcoming events)
   -- --------------------------------------------------------
 
-  insert into public.rsvps (user_id, event_id)
+  insert into public.registrations (user_id, event_id, kind)
   values
-    (v_user_id, 'a0000000-0000-0000-0000-000000000001'),
-    (v_user_id, 'a0000000-0000-0000-0000-000000000002');
+    (v_user_id, 'a0000000-0000-0000-0000-000000000001', 'native'),
+    (v_user_id, 'a0000000-0000-0000-0000-000000000002', 'native');
 
 end;
 $$;

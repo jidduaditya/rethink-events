@@ -34,6 +34,10 @@ export function useRemoveAttendee(eventId: string) {
         .eq("id", registrationId);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["attendees", eventId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["attendees", eventId] });
+      qc.invalidateQueries({ queryKey: ["event", eventId] });
+      qc.invalidateQueries({ queryKey: ["events", "feed"] });
+    },
   });
 }
