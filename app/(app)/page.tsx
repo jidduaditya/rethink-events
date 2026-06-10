@@ -162,7 +162,11 @@ export default function FeedPage() {
             <FeedSection
               title="You're registered"
               events={registered}
-              emptyLabel="YOU HAVEN'T REGISTERED FOR ANYTHING YET."
+              emptyLabel={
+                registeredIds.size === 0
+                  ? "YOU HAVEN'T REGISTERED FOR ANYTHING YET."
+                  : "NO REGISTERED EVENTS MATCH THESE FILTERS."
+              }
             />
             <FeedSection
               title="Everything else"
