@@ -5,8 +5,6 @@ import { createClient } from "@/lib/supabase/client";
 
 export type Attendee = {
   id: string;
-  user_id: string;
-  kind: "native" | "external";
   user: { full_name: string; email: string };
 };
 
@@ -17,7 +15,7 @@ export function useEventAttendees(eventId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("registrations")
-        .select("id, user_id, kind, user:profiles!user_id(full_name, email)")
+        .select("id, user:profiles!user_id(full_name, email)")
         .eq("event_id", eventId);
       if (error) throw error;
       return data as unknown as Attendee[];

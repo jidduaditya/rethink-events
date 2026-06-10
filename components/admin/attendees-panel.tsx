@@ -8,7 +8,9 @@ import {
 import type { Event } from "@/lib/types";
 
 export function AttendeesPanel({ event }: { event: Event }) {
-  const { data: attendees = [], isLoading } = useEventAttendees(event.id);
+  const { data: attendees = [], isLoading, isError } = useEventAttendees(
+    event.id,
+  );
   const remove = useRemoveAttendee(event.id);
 
   const isExternal = event.register_mode === "external";
@@ -21,6 +23,10 @@ export function AttendeesPanel({ event }: { event: Event }) {
         </h2>
         {isLoading ? (
           <p className="font-mono text-label-data">Loading...</p>
+        ) : isError ? (
+          <p className="font-mono text-label-data uppercase text-error">
+            Failed to load headcount
+          </p>
         ) : (
           <div>
             <p className="font-serif text-headline-lg font-black">
@@ -44,7 +50,12 @@ export function AttendeesPanel({ event }: { event: Event }) {
         {isLoading && (
           <li className="py-3 font-mono text-label-data">Loading...</li>
         )}
-        {!isLoading && attendees.length === 0 && (
+        {!isLoading && isError && (
+          <li className="py-3 font-mono text-label-data uppercase text-error">
+            Failed to load attendees
+          </li>
+        )}
+        {!isLoading && !isError && attendees.length === 0 && (
           <li className="py-3 font-mono text-label-data uppercase text-on-surface-variant">
             No attendees yet
           </li>
@@ -60,7 +71,10 @@ export function AttendeesPanel({ event }: { event: Event }) {
               </span>
             </div>
             <button
-              onClick={() => remove.mutate(a.id)}
+              onClick={() => {
+                if (window.confirm(`Remove ${a.user.full_name}?`))
+                  remove.mutate(a.id);
+              }}
               disabled={remove.isPending}
               aria-label={`Remove ${a.user.full_name}`}
               className="ml-3 flex h-11 w-11 shrink-0 items-center justify-center disabled:opacity-50"
