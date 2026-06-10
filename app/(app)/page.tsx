@@ -5,9 +5,15 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { useSession } from "@/hooks/use-session";
 import { useEvents } from "@/hooks/use-events";
-import { EventCard } from "@/components/events/event-card";
+import { useRegistrations } from "@/hooks/use-registrations";
+import { FilterBar } from "@/components/events/filter-bar";
+import { FeedSection } from "@/components/events/feed-section";
 import { EmptyState } from "@/components/events/empty-state";
+import { matchesFilters, isLive, type FeedFilters } from "@/lib/feed-filters";
+import type { EventWithOrganizer } from "@/lib/types";
 import { BRAND } from "@/lib/brand";
+
+const DEFAULT_FILTERS: FeedFilters = { city: "all", format: "all", when: "all" };
 
 function SkeletonCard() {
   return (
@@ -21,8 +27,56 @@ function SkeletonCard() {
   );
 }
 
+/**
+ * Splits the loaded feed into three mutually-exclusive sections.
+ * - hero: live events now; if none live, the single soonest upcoming event.
+ *   The hero ignores the `when` filter but still respects city/format.
+ * - registered: events the user is registered for, passing the full filters.
+ * - everything: the rest, passing the full filters.
+ * No event appears in more than one section (hero ids are excluded from both).
+ */
+function deriveSections(
+  events: EventWithOrganizer[],
+  filters: FeedFilters,
+  registeredIds: Set<string>,
+  now: Date
+) {
+  // Hero ignores `when` but honours city/format.
+  const heroFilters: FeedFilters = { ...filters, when: "all" };
+  const heroEligible = events.filter((e) => matchesFilters(e, heroFilters, now));
+
+  const liveEvents = heroEligible.filter((e) => isLive(e, now));
+  // Events are loaded sorted by starts_at ascending; first upcoming is soonest.
+  const soonestUpcoming = heroEligible.find(
+    (e) => new Date(e.starts_at) > now
+  );
+
+  const hero =
+    liveEvents.length > 0
+      ? liveEvents
+      : soonestUpcoming
+        ? [soonestUpcoming]
+        : [];
+  const heroIds = new Set(hero.map((e) => e.id));
+
+  const filtered = events.filter((e) => matchesFilters(e, filters, now));
+
+  const registered = filtered.filter(
+    (e) => registeredIds.has(e.id) && !heroIds.has(e.id)
+  );
+  const everything = filtered.filter(
+    (e) => !registeredIds.has(e.id) && !heroIds.has(e.id)
+  );
+
+  return { hero, registered, everything };
+}
+
 export default function FeedPage() {
   const { data: session } = useSession();
+  const userId = session?.user.id;
+
+  const [filters, setFilters] = React.useState<FeedFilters>(DEFAULT_FILTERS);
+
   const {
     data,
     fetchNextPage,
@@ -30,9 +84,27 @@ export default function FeedPage() {
     isLoading,
     isError,
     refetch,
-  } = useEvents();
+  } = useEvents({ city: filters.city, format: filters.format });
+
+  const { data: registrations } = useRegistrations(userId);
 
   const events = data?.pages.flatMap((page) => page) ?? [];
+
+  const now = new Date();
+  const registeredIds = new Set(
+    (registrations ?? []).map((r) => r.event_id)
+  );
+
+  const cities = [
+    ...new Set(events.map((e) => e.city).filter((c): c is string => Boolean(c))),
+  ];
+
+  const { hero, registered, everything } = deriveSections(
+    events,
+    filters,
+    registeredIds,
+    now
+  );
 
   return (
     <div className="dot-grid min-h-[80vh]">
@@ -68,7 +140,7 @@ export default function FeedPage() {
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Empty state (no events at all) */}
         {!isLoading && !isError && events.length === 0 && (
           <EmptyState
             message={BRAND.empty.feed}
@@ -77,14 +149,26 @@ export default function FeedPage() {
           />
         )}
 
-        {/* Event grid */}
+        {/* Three-section feed */}
         {!isLoading && !isError && events.length > 0 && (
           <>
-            <div className="grid grid-cols-1 gap-x-grid-gutter gap-y-stack-lg md:grid-cols-2 xl:grid-cols-4">
-              {events.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-            </div>
+            <FilterBar value={filters} cities={cities} onChange={setFilters} />
+
+            <FeedSection
+              title="Happening now"
+              events={hero}
+              emptyLabel="NOTHING LIVE OR COMING UP."
+            />
+            <FeedSection
+              title="You're registered"
+              events={registered}
+              emptyLabel="YOU HAVEN'T REGISTERED FOR ANYTHING YET."
+            />
+            <FeedSection
+              title="Everything else"
+              events={everything}
+              emptyLabel="NO EVENTS MATCH THESE FILTERS."
+            />
 
             {/* Load more */}
             {hasNextPage && (
