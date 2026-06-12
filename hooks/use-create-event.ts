@@ -7,7 +7,14 @@ import type { Event, RegisterMode } from "@/lib/types";
 
 type CreateEventInput = Omit<
   Event,
-  "id" | "created_at" | "status" | "created_by" | "register_mode"
+  | "id"
+  | "created_at"
+  | "status"
+  | "created_by"
+  | "register_mode"
+  | "cancelled_at"
+  | "cancellation_reason"
+  | "reminder_sent_at"
 > & {
   register_mode: RegisterMode;
 };

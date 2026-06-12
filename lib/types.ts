@@ -1,4 +1,4 @@
-// Manual types matching our 3-table MVP schema.
+// Manual types matching our schema.
 // Replace with generated types once Supabase CLI is connected:
 //   bunx supabase gen types typescript --local > lib/types.ts
 
@@ -8,10 +8,11 @@ export type Profile = {
   email: string;
   role: "member" | "admin";
   city: string | null;
+  trusted_host: boolean;
   created_at: string;
 };
 
-export type EventStatus = "pending" | "approved" | "rejected";
+export type EventStatus = "pending" | "approved" | "rejected" | "cancelled";
 export type EventType = "online" | "offline";
 export type RegisterMode = "native" | "external";
 
@@ -36,13 +37,17 @@ export type Event = {
   timezone: string;
   capacity: number | null;
   status: EventStatus;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+  reminder_sent_at: string | null;
   created_at: string;
 };
 
 export type EventWithOrganizer = Event & {
   organizer: Pick<Profile, "id" | "full_name" | "email">;
+  // Optionally included by feed query for capacity state derivation.
+  registrations?: { id: string }[];
 };
-
 
 export type RegistrationKind = "native" | "external";
 
@@ -75,12 +80,12 @@ export type Database = {
     Tables: {
       profiles: {
         Row: Profile;
-        Insert: Omit<Profile, "created_at">;
+        Insert: Omit<Profile, "created_at" | "trusted_host">;
         Update: Partial<Omit<Profile, "id" | "created_at">>;
       };
       events: {
         Row: Event;
-        Insert: Omit<Event, "id" | "created_at" | "status"> & {
+        Insert: Omit<Event, "id" | "created_at" | "status" | "cancelled_at" | "cancellation_reason" | "reminder_sent_at"> & {
           status?: EventStatus;
         };
         Update: Partial<Omit<Event, "id" | "created_at" | "created_by">>;
@@ -104,6 +109,18 @@ export type Database = {
       is_allowlisted: {
         Args: { p_email: string };
         Returns: boolean;
+      };
+      approve_event: {
+        Args: { p_event_id: string };
+        Returns: { success: boolean; reason?: string };
+      };
+      cancel_event: {
+        Args: { p_event_id: string; p_reason: string };
+        Returns: { success: boolean; reason?: string; registrant_emails?: string[] };
+      };
+      set_trusted_host: {
+        Args: { p_user_id: string; p_trusted: boolean };
+        Returns: { success: boolean; reason?: string };
       };
     };
   };

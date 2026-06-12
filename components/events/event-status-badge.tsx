@@ -6,12 +6,17 @@ type EventStatusBadgeProps = {
 };
 
 const statusStyles: Record<EventStatus, string> = {
-  pending:
-    "bg-surface border-2 border-on-background text-on-surface",
-  approved:
-    "bg-on-background text-surface",
-  rejected:
-    "bg-error text-on-error border-2 border-error",
+  pending:   "bg-surface-container border-2 border-on-background text-on-surface",
+  approved:  "bg-on-background text-surface",
+  rejected:  "bg-error text-on-error border-2 border-on-background",
+  cancelled: "bg-error-container text-on-error-container border-2 border-on-background",
+};
+
+const statusLabels: Record<EventStatus, string> = {
+  pending:   "IN REVIEW",
+  approved:  "APPROVED",
+  rejected:  "REJECTED",
+  cancelled: "CANCELLED",
 };
 
 export function EventStatusBadge({ status }: EventStatusBadgeProps) {
@@ -22,7 +27,7 @@ export function EventStatusBadge({ status }: EventStatusBadgeProps) {
         statusStyles[status]
       )}
     >
-      {status}
+      {statusLabels[status]}
     </span>
   );
 }
