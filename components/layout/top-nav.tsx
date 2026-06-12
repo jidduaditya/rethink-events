@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 const navLinks = [
   { href: "/", label: "EVENTS" },
   { href: "/me", label: "MY EVENTS" },
+  { href: "/past", label: "PAST" },
 ];
 
 function useProfile() {
