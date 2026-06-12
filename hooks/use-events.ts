@@ -20,9 +20,12 @@ export function useEvents(filters?: {
       filters?.format ?? "all",
     ],
     queryFn: async ({ pageParam }) => {
+      // Include native registration IDs so EventCard can derive capacity state.
       let query = supabase
         .from("events")
-        .select("*, organizer:profiles!created_by(id, full_name, email)")
+        .select(
+          "*, organizer:profiles!created_by(id, full_name, email), registrations(id)"
+        )
         .eq("status", "approved")
         .gt("ends_at", new Date().toISOString())
         .order("starts_at", { ascending: true })
@@ -41,7 +44,6 @@ export function useEvents(filters?: {
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
       return data as EventWithOrganizer[];
     },

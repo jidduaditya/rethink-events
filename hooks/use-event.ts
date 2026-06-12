@@ -21,10 +21,12 @@ export function useEvent(eventId: string | undefined) {
           .select("*, organizer:profiles!created_by(id, full_name, email)")
           .eq("id", eventId!)
           .single(),
+        // Count only native registrations to match capacity enforcement in create_registration.
         supabase
           .from("registrations")
           .select("id", { count: "exact", head: true })
-          .eq("event_id", eventId!),
+          .eq("event_id", eventId!)
+          .eq("kind", "native"),
       ]);
 
       if (eventResult.error) throw eventResult.error;
