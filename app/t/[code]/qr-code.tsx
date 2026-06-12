@@ -3,7 +3,7 @@
 // QrCode — client component wrapper for qrcode.react.
 // qrcode.react uses browser Canvas/SVG APIs so it cannot render in a Server Component.
 
-import QRCode from "qrcode.react";
+import { QRCodeSVG as QRCode } from "qrcode.react";
 
 type QrCodeProps = {
   value: string;
