@@ -30,6 +30,8 @@ export function useCreateEvent() {
 
       const register_mode = input.register_mode ?? "native";
 
+      // Status is set server-side by the before-insert trigger based on
+      // whether the creator is a trusted host or admin. Do not hardcode here.
       const { data, error } = await supabase
         .from("events")
         .insert({
@@ -37,7 +39,6 @@ export function useCreateEvent() {
           register_mode,
           register_url: register_mode === "external" ? input.register_url ?? null : null,
           created_by: user.id,
-          status: "pending",
         })
         .select()
         .single();
@@ -45,13 +46,19 @@ export function useCreateEvent() {
       if (error) throw error;
       return data as Event;
     },
-    onSuccess: () => {
+    onSuccess: (event) => {
+      // Invalidates: ["events","feed"] (new approved event appears) or
+      //              ["admin","queue"] (new pending event queued for review).
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      if (event.status === "pending") {
+        queryClient.invalidateQueries({ queryKey: ["admin", "queue"] });
+      }
     },
   });
 
   return {
     createEvent: mutation.mutate,
+    createEventAsync: mutation.mutateAsync,
     isCreating: mutation.isPending,
     error: mutation.error,
     data: mutation.data,

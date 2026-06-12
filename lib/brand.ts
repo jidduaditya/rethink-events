@@ -22,6 +22,33 @@ export const BRAND = {
     status: "STATUS: DRAFT",
     publish: "PUBLISH EVENT",
     descriptionPlaceholder: "What's going down?",
+    trustedPublished: "YOUR EVENT IS LIVE.",
+    pendingReview: "FIRST EVENT GOES THROUGH REVIEW. AFTER THAT YOU PUBLISH INSTANTLY.",
+  },
+  lifecycle: {
+    inReview:  "IN REVIEW",
+    live:      "LIVE",
+    full:      "FULL",
+    cancelled: "THIS EVENT WAS CANCELLED",
+    ended:     "THIS EVENT HAS ENDED",
+    rejected:  "REJECTED",
+    pendingBanner: "ONLY YOU AND ADMINS CAN SEE THIS EVENT WHILE IT IS IN REVIEW.",
+  },
+  admin: {
+    trust: {
+      grant:    "GRANT TRUST",
+      revoke:   "REVOKE TRUST",
+      trusted:  "TRUSTED HOST",
+      untrusted: "UNTRUSTED",
+    },
+    cancel: {
+      button:      "CANCEL EVENT",
+      dialogTitle: "CANCEL THIS EVENT",
+      dialogBody:  "This cannot be undone. All registered attendees will be notified.",
+      reasonLabel: "REASON (required)",
+      confirm:     "CANCEL EVENT",
+      abort:       "KEEP EVENT",
+    },
   },
   empty: {
     feed: "Nothing on tonight. Build one.",

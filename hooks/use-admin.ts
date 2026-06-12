@@ -7,7 +7,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import type { EventStatus, EventWithOrganizer } from "@/lib/types";
+import type { EventStatus, EventWithOrganizer, Profile } from "@/lib/types";
 
 const PAGE_SIZE = 20;
 
@@ -24,12 +24,8 @@ export function useAdminStats() {
     queryKey: ["admin", "stats"],
     queryFn: async () => {
       const [eventsResult, membersResult, pendingResult] = await Promise.all([
-        supabase
-          .from("events")
-          .select("id", { count: "exact", head: true }),
-        supabase
-          .from("profiles")
-          .select("id", { count: "exact", head: true }),
+        supabase.from("events").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase
           .from("events")
           .select("id", { count: "exact", head: true })
@@ -53,7 +49,7 @@ export function useAdminPendingEvents() {
   const supabase = createClient();
 
   return useInfiniteQuery<EventWithOrganizer[]>({
-    queryKey: ["admin", "pending"],
+    queryKey: ["admin", "queue"],
     queryFn: async ({ pageParam }) => {
       let query = supabase
         .from("events")
@@ -67,7 +63,6 @@ export function useAdminPendingEvents() {
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
       return data as EventWithOrganizer[];
     },
@@ -91,19 +86,77 @@ export function useAdminAction() {
       eventId: string;
       status: EventStatus;
     }) => {
-      const { data, error } = await supabase
-        .from("events")
-        .update({ status })
-        .eq("id", eventId)
-        .select()
-        .single();
+      if (status === "approved") {
+        // Invalidates: ["admin","queue"], ["events","feed"], ["event",id], ["admin","users"]
+        // Use RPC to atomically approve + set creator as trusted host.
+        const { data, error } = await supabase.rpc("approve_event", {
+          p_event_id: eventId,
+        });
+        if (error) throw error;
+        if (!data.success) throw new Error(data.reason ?? "Approval failed");
+        return data;
+      } else {
+        // Invalidates: ["admin","queue"], ["events","feed"], ["event",id]
+        const { data, error } = await supabase
+          .from("events")
+          .update({ status })
+          .eq("id", eventId)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: (_, { status }) => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
+      if (status === "approved") {
+        // Trust flag changed on the creator's profile.
+        queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      }
+    },
+  });
+}
 
+export function useAdminUsers() {
+  const supabase = createClient();
+
+  return useQuery<Profile[]>({
+    queryKey: ["admin", "users"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
       if (error) throw error;
+      return data as Profile[];
+    },
+  });
+}
+
+export function useTrustToggle() {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      trusted,
+    }: {
+      userId: string;
+      trusted: boolean;
+    }) => {
+      // Invalidates: ["admin","users"]
+      const { data, error } = await supabase.rpc("set_trusted_host", {
+        p_user_id: userId,
+        p_trusted: trusted,
+      });
+      if (error) throw error;
+      if (!data.success) throw new Error(data.reason ?? "Trust update failed");
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["admin"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     },
   });
 }

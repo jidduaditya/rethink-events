@@ -27,13 +27,24 @@ export default function OrganisePage() {
         <EventForm
           onSubmit={(data) => {
             createEvent(data, {
-              onSuccess: () => {
-                router.push("/me?created=1");
+              onSuccess: (event) => {
+                if (event.status === "approved") {
+                  // Trusted host or admin: event is live, go see it.
+                  router.push(`/e/${event.id}?published=1`);
+                } else {
+                  // First-time creator: pending review.
+                  router.push("/me?created=1");
+                }
               },
             });
           }}
           isSubmitting={isCreating}
         />
+
+        {/* First-timer notice (always visible on this page, pre-submit) */}
+        <p className="mt-stack-md font-mono text-label-data uppercase text-on-surface-variant">
+          {BRAND.create.pendingReview}
+        </p>
       </div>
     </div>
   );

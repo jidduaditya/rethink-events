@@ -9,6 +9,7 @@ import {
 import { AdminStatsPanel } from "@/components/admin/admin-stats-panel";
 import { ApprovalCard } from "@/components/admin/approval-card";
 import { AllowlistPanel } from "@/components/admin/allowlist-panel";
+import { UsersPanel } from "@/components/admin/users-panel";
 
 export default function AdminPage() {
   const { data: stats, isLoading: isLoadingStats } = useAdminStats();
@@ -42,14 +43,13 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Pending approval heading */}
+        {/* Pending approval queue */}
         <div className="mb-stack-lg border-b-4 border-on-background pb-stack-md">
           <h2 className="font-serif text-headline-md font-bold uppercase">
             PENDING APPROVAL
           </h2>
         </div>
 
-        {/* Loading pending */}
         {isLoadingPending && (
           <div className="space-y-stack-lg">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -58,14 +58,12 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Empty state */}
         {!isLoadingPending && pendingEvents.length === 0 && (
           <p className="py-stack-xl text-center font-mono text-body-lg font-semibold uppercase text-on-surface-variant">
             All clear. No events pending.
           </p>
         )}
 
-        {/* Approval cards */}
         {!isLoadingPending && pendingEvents.length > 0 && (
           <div className="space-y-stack-lg">
             {pendingEvents.map((event) => (
@@ -84,7 +82,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Load more */}
         {hasNextPage && (
           <div className="mt-stack-xl flex justify-center">
             <button
@@ -96,7 +93,12 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Whitelist management */}
+        {/* Members with trust management */}
+        <div className="mt-stack-xl">
+          <UsersPanel />
+        </div>
+
+        {/* Allowlist */}
         <div className="mt-stack-xl">
           <AllowlistPanel />
         </div>
