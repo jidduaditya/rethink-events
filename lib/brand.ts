@@ -16,6 +16,9 @@ export const BRAND = {
     cancel: "CAN'T MAKE IT",
     externalRegister: "REGISTER ON HOST'S PAGE",
     externalRegistered: "REGISTERED. OPEN PAGE",
+    leaveWaitlist: "LEAVE WAITLIST",
+    onWaitlist: "YOU'RE ON THE WAITLIST",
+    waitlistPosition: (n: number) => `POSITION ${n} IN QUEUE`,
   },
   create: {
     header: "NEW EVENT",
@@ -33,6 +36,7 @@ export const BRAND = {
     ended:     "THIS EVENT HAS ENDED",
     rejected:  "REJECTED",
     pendingBanner: "ONLY YOU AND ADMINS CAN SEE THIS EVENT WHILE IT IS IN REVIEW.",
+    checkedIn: "CHECKED IN",
   },
   admin: {
     trust: {
@@ -49,6 +53,30 @@ export const BRAND = {
       confirm:     "CANCEL EVENT",
       abort:       "KEEP EVENT",
     },
+    checkIn: {
+      checkIn:   "CHECK IN",
+      checkedIn: "CHECKED IN",
+      undo:      "UNDO",
+    },
+  },
+  ticket: {
+    confirmed: "YOU'RE IN",
+    waitlisted: "YOU'RE ON THE WAITLIST",
+    addToCalendar: "ADD TO GOOGLE CALENDAR",
+    downloadIcs: "DOWNLOAD .ICS",
+    shareWhatsapp: "SHARE ON WHATSAPP",
+    backToEvent: "BACK TO EVENT",
+    noQr: "NO QR FOR WAITLISTED SPOTS. YOU'LL GET ONE WHEN A SPOT OPENS.",
+  },
+  updates: {
+    header: "HOST UPDATES",
+    emptyHost: "NO UPDATES SENT YET. ATTENDEES GET THESE BY EMAIL.",
+    placeholder: "TYPE YOUR UPDATE HERE (MAX 1000 CHARS)...",
+    sendButton: "SEND UPDATE",
+    cooldown: (secs: number) => `WAIT ${secs}S`,
+  },
+  share: {
+    button: "SHARE EVENT",
   },
   empty: {
     feed: "Nothing on tonight. Build one.",
