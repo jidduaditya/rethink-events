@@ -50,12 +50,16 @@ export type EventWithOrganizer = Event & {
 };
 
 export type RegistrationKind = "native" | "external";
+export type RegistrationStatus = "confirmed" | "waitlisted" | "cancelled";
 
 export type Registration = {
   id: string;
   user_id: string;
   event_id: string;
   kind: RegistrationKind;
+  status: RegistrationStatus;
+  registration_code: string;
+  checked_in_at: string | null;
   created_at: string;
 };
 
@@ -63,8 +67,42 @@ export type RegistrationWithEvent = Registration & { event: Event };
 
 export type CreateRegistrationResult = {
   success: boolean;
+  state?: "confirmed" | "waitlisted";
+  code?: string;
+  position?: number;
   kind?: RegistrationKind;
-  reason?: "conflict" | "full" | "past" | "not_approved";
+  reason?: "not_found" | "not_approved" | "past" | "already_registered";
+};
+
+export type EventMessage = {
+  id: string;
+  event_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+};
+
+export type PublicEvent = {
+  id: string;
+  title: string;
+  description: string;
+  event_type: string;
+  starts_at: string;
+  ends_at: string;
+  timezone: string;
+  capacity: number | null;
+  city: string | null;
+  location_name: string | null;
+  location_address: string | null;
+  meet_url: string | null;
+  image_url: string | null;
+  status: string;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+  created_by: string;
+  host_name: string;
+  confirmed_count: number;
+  register_mode: string | null;
 };
 
 export type AllowlistEntry = {
@@ -92,12 +130,20 @@ export type Database = {
       };
       registrations: {
         Row: Registration;
-        Insert: Omit<Registration, "id" | "created_at">;
+        Insert: Omit<Registration, "id" | "created_at"> & {
+          status?: RegistrationStatus;
+          registration_code?: string;
+        };
         Update: never;
       };
       allowlist: {
         Row: AllowlistEntry;
         Insert: Omit<AllowlistEntry, "id" | "created_at">;
+        Update: never;
+      };
+      event_messages: {
+        Row: EventMessage;
+        Insert: Omit<EventMessage, "id" | "created_at">;
         Update: never;
       };
     };
@@ -121,6 +167,46 @@ export type Database = {
       set_trusted_host: {
         Args: { p_user_id: string; p_trusted: boolean };
         Returns: { success: boolean; reason?: string };
+      };
+      cancel_my_registration: {
+        Args: { p_registration_id: string };
+        Returns: { success: boolean; reason?: string; promoted?: unknown };
+      };
+      host_remove_registration: {
+        Args: { p_registration_id: string };
+        Returns: { success: boolean; reason?: string; promoted?: unknown };
+      };
+      set_check_in: {
+        Args: { p_registration_id: string; p_checked_in: boolean };
+        Returns: { success: boolean; reason?: string };
+      };
+      get_ticket: {
+        Args: { p_code: string };
+        Returns: {
+          event_id: string; event_title: string; starts_at: string; ends_at: string;
+          timezone: string; venue: string; city: string | null; first_name: string;
+          status: RegistrationStatus; registration_code: string; waitlist_position: number | null;
+        } | null;
+      };
+      find_conflict: {
+        Args: { p_user_id: string; p_event_id: string };
+        Returns: string | null;
+      };
+      promote_from_waitlist: {
+        Args: { p_event_id: string };
+        Returns: { id: string; user_id: string; registration_code: string } | null;
+      };
+      get_public_event: {
+        Args: { p_event_id: string };
+        Returns: {
+          id: string; title: string; description: string; event_type: string;
+          starts_at: string; ends_at: string; timezone: string; capacity: number | null;
+          city: string | null; location_name: string | null; location_address: string | null;
+          meet_url: string | null; image_url: string | null; status: string;
+          cancelled_at: string | null; cancellation_reason: string | null;
+          created_by: string; host_name: string; confirmed_count: number;
+          register_mode: string | null;
+        } | null;
       };
     };
   };
