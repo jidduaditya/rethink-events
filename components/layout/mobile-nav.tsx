@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, PlusSquare, User } from "lucide-react";
+import { Archive, Calendar, PlusSquare, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "EVENTS", icon: Calendar },
   { href: "/organise", label: "ORGANISE", icon: PlusSquare },
   { href: "/me", label: "MY EVENTS", icon: User },
+  { href: "/past", label: "PAST", icon: Archive },
 ];
 
 export function MobileNav() {

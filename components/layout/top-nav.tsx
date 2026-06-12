@@ -10,6 +10,7 @@ const navLinks = [
   { href: "/", label: "EVENTS" },
   { href: "/organise", label: "ORGANISE" },
   { href: "/me", label: "MY EVENTS" },
+  { href: "/past", label: "PAST" },
 ];
 
 export function TopNav() {
