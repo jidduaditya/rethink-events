@@ -8,7 +8,7 @@ import { BRAND } from "@/lib/brand";
 
 export default function OrganisePage() {
   const router = useRouter();
-  const { createEvent, isCreating } = useCreateEvent();
+  const { createEvent, isCreating, error } = useCreateEvent();
 
   return (
     <div className="dot-grid min-h-[80vh]">
@@ -23,16 +23,20 @@ export default function OrganisePage() {
           </p>
         </div>
 
+        {error && (
+          <p className="mb-stack-md border-2 border-error bg-surface px-4 py-3 font-mono text-label-mono uppercase text-error">
+            {(error as Error).message}
+          </p>
+        )}
+
         {/* Event form */}
         <EventForm
           onSubmit={(data) => {
             createEvent(data, {
               onSuccess: (event) => {
                 if (event.status === "approved") {
-                  // Trusted host or admin: event is live, go see it.
                   router.push(`/e/${event.id}?published=1`);
                 } else {
-                  // First-time creator: pending review.
                   router.push("/me?created=1");
                 }
               },

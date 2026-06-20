@@ -213,8 +213,8 @@ export function EventDetailClient({
       )}
 
       {/* Hero section */}
-      <div className="group relative aspect-video w-full overflow-hidden border-4 border-on-background bg-surface-dim">
-        {event.image_url ? (
+      {event.image_url ? (
+        <div className="group relative aspect-video w-full overflow-hidden border-4 border-on-background bg-surface-dim">
           <Image
             src={event.image_url}
             alt={event.title}
@@ -227,28 +227,41 @@ export function EventDetailClient({
             )}
             unoptimized
           />
-        ) : (
-          <div className="h-full w-full bg-surface-dim" />
-        )}
 
-        {/* LIVE badge — top-left, screen's single pink element */}
-        {uiState === "live" && (
-          <span className="absolute left-0 top-0 flex items-center gap-1.5 bg-tertiary px-4 py-2 font-mono text-label-mono uppercase font-semibold text-on-tertiary">
-            <span
-              className="h-2 w-2 rounded-full bg-on-tertiary motion-safe:animate-pulse"
-              aria-hidden="true"
-            />
-            {BRAND.lifecycle.live}
-          </span>
-        )}
+          {/* LIVE badge */}
+          {uiState === "live" && (
+            <span className="absolute left-0 top-0 flex items-center gap-1.5 bg-tertiary px-4 py-2 font-mono text-label-mono uppercase font-semibold text-on-tertiary">
+              <span
+                className="h-2 w-2 rounded-full bg-on-tertiary motion-safe:animate-pulse"
+                aria-hidden="true"
+              />
+              {BRAND.lifecycle.live}
+            </span>
+          )}
 
-        {/* Title block overlay */}
-        <div className="absolute bottom-0 left-0 w-3/4 border-r-4 border-t-4 border-on-background bg-primary-container p-stack-md md:w-1/2">
+          {/* Title block overlay */}
+          <div className="absolute bottom-0 left-0 w-3/4 border-r-4 border-t-4 border-on-background bg-primary-container p-stack-md md:w-1/2">
+            <h1 className="font-serif text-headline-lg font-black uppercase text-on-primary">
+              {event.title}
+            </h1>
+          </div>
+        </div>
+      ) : (
+        <div className="border-b-4 border-on-background bg-primary-container px-grid-margin py-stack-lg">
+          {uiState === "live" && (
+            <span className="mb-stack-sm inline-flex items-center gap-1.5 bg-tertiary px-4 py-2 font-mono text-label-mono uppercase font-semibold text-on-tertiary">
+              <span
+                className="h-2 w-2 rounded-full bg-on-tertiary motion-safe:animate-pulse"
+                aria-hidden="true"
+              />
+              {BRAND.lifecycle.live}
+            </span>
+          )}
           <h1 className="font-serif text-headline-lg font-black uppercase text-on-primary">
             {event.title}
           </h1>
         </div>
-      </div>
+      )}
 
       {/* Two-column layout */}
       <div className="mx-auto grid max-w-7xl gap-stack-lg px-grid-margin py-stack-xl md:grid-cols-12">
