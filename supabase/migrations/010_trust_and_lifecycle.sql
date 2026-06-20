@@ -13,14 +13,15 @@ do $$
 declare
   v_conname text;
 begin
-  select conname into v_conname
-    from pg_constraint
-   where conrelid = 'public.events'::regclass
-     and contype = 'c'
-     and pg_get_constraintdef(oid) like '%status in%';
-  if v_conname is not null then
+  for v_conname in
+    select conname
+      from pg_constraint
+     where conrelid = 'public.events'::regclass
+       and contype = 'c'
+       and pg_get_constraintdef(oid) ilike '%status%'
+  loop
     execute 'alter table public.events drop constraint ' || quote_ident(v_conname);
-  end if;
+  end loop;
 end;
 $$;
 

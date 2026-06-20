@@ -32,12 +32,12 @@ begin
     from public.profiles
    where id = v_event.created_by;
 
-  -- Count confirmed registrations only (kind = 'native' is V1;
-  -- V0 rsvps table has no kind column, so count all rows for now).
+  -- Count confirmed registrations.
   select count(*)::integer
     into v_confirmed
-    from public.rsvps
-   where event_id = p_event_id;
+    from public.registrations
+   where event_id = p_event_id
+     and status   = 'confirmed';
 
   return jsonb_build_object(
     'id',                   v_event.id,
