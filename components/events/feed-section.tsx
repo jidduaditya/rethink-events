@@ -1,3 +1,4 @@
+import React from "react";
 import type { EventWithOrganizer } from "@/lib/types";
 import { EventCard } from "@/components/events/event-card";
 
@@ -5,10 +6,12 @@ export function FeedSection({
   title,
   events,
   emptyLabel,
+  renderCard,
 }: {
   title: string;
   events: EventWithOrganizer[];
   emptyLabel?: string;
+  renderCard?: (event: EventWithOrganizer) => React.ReactNode;
 }) {
   return (
     <section className="mb-stack-xl">
@@ -21,9 +24,9 @@ export function FeedSection({
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-x-grid-gutter gap-y-stack-lg md:grid-cols-2 xl:grid-cols-4">
-          {events.map((e) => (
-            <EventCard key={e.id} event={e} />
-          ))}
+          {events.map((e) =>
+            renderCard ? renderCard(e) : <EventCard key={e.id} event={e} />
+          )}
         </div>
       )}
     </section>

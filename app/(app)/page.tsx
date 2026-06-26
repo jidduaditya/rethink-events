@@ -6,11 +6,15 @@ import { Plus } from "lucide-react";
 import { useSession } from "@/hooks/use-session";
 import { useEvents } from "@/hooks/use-events";
 import { useRegistrations } from "@/hooks/use-registrations";
+import { useProfile } from "@/hooks/use-profile";
+import { useCohortCounts } from "@/hooks/use-cohort-counts";
+import { isForYou } from "@/lib/for-you";
 import { FilterBar } from "@/components/events/filter-bar";
 import { FeedSection } from "@/components/events/feed-section";
+import { EventCard } from "@/components/events/event-card";
 import { EmptyState } from "@/components/events/empty-state";
 import { matchesFilters, isLive, type FeedFilters } from "@/lib/feed-filters";
-import type { EventWithOrganizer } from "@/lib/types";
+import type { EventWithOrganizer, Profile } from "@/lib/types";
 import { BRAND } from "@/lib/brand";
 
 const DEFAULT_FILTERS: FeedFilters = { city: "all", format: "all", when: "all", tag: "all" };
@@ -39,6 +43,7 @@ function deriveSections(
   events: EventWithOrganizer[],
   filters: FeedFilters,
   registeredIds: Set<string>,
+  profile: Profile | null | undefined,
   now: Date
 ) {
   // Hero ignores `when` but honours city/format.
@@ -61,14 +66,19 @@ function deriveSections(
 
   const filtered = events.filter((e) => matchesFilters(e, filters, now));
 
+  const forYou = profile
+    ? filtered.filter((e) => !heroIds.has(e.id) && isForYou(e, profile))
+    : [];
+  const forYouIds = new Set(forYou.map((e) => e.id));
+
   const registered = filtered.filter(
-    (e) => registeredIds.has(e.id) && !heroIds.has(e.id)
+    (e) => registeredIds.has(e.id) && !heroIds.has(e.id) && !forYouIds.has(e.id)
   );
   const everything = filtered.filter(
-    (e) => !registeredIds.has(e.id) && !heroIds.has(e.id)
+    (e) => !registeredIds.has(e.id) && !heroIds.has(e.id) && !forYouIds.has(e.id)
   );
 
-  return { hero, registered, everything };
+  return { hero, forYou, registered, everything };
 }
 
 export default function FeedPage() {
@@ -87,6 +97,7 @@ export default function FeedPage() {
   } = useEvents({ city: filters.city, format: filters.format, tag: filters.tag });
 
   const { data: registrations } = useRegistrations(userId);
+  const { data: profile } = useProfile(userId);
 
   const events = data?.pages.flatMap((page) => page) ?? [];
 
@@ -99,12 +110,20 @@ export default function FeedPage() {
     ...new Set(events.map((e) => e.city).filter((c): c is string => Boolean(c))),
   ];
 
-  const { hero, registered, everything } = deriveSections(
+  const { hero, forYou, registered, everything } = deriveSections(
     events,
     filters,
     registeredIds,
+    profile,
     now
   );
+
+  const forYouEventIds = forYou.map((e) => e.id);
+  const { data: cohortCounts } = useCohortCounts(forYouEventIds, {
+    goal: profile?.goal ?? null,
+    level: profile?.level ?? null,
+    city: profile?.city ?? null,
+  });
 
   return (
     <div className="dot-grid min-h-[80vh]">
@@ -159,6 +178,20 @@ export default function FeedPage() {
               events={hero}
               emptyLabel="NOTHING LIVE OR COMING UP."
             />
+            {profile?.goal && (
+              <FeedSection
+                title={BRAND.forYou.sectionTitle}
+                events={forYou}
+                emptyLabel={BRAND.forYou.empty}
+                renderCard={(event) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    cohortCount={cohortCounts?.[event.id]}
+                  />
+                )}
+              />
+            )}
             <FeedSection
               title="You're registered"
               events={registered}

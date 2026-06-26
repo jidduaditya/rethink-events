@@ -9,9 +9,10 @@ import type { EventWithOrganizer } from "@/lib/types";
 
 type EventCardProps = {
   event: EventWithOrganizer;
+  cohortCount?: number;
 };
 
-export function EventCard({ event }: EventCardProps) {
+export function EventCard({ event, cohortCount }: EventCardProps) {
   const start = formatEventTime(event.starts_at, event.timezone);
   const location =
     event.event_type === "online"
@@ -79,6 +80,11 @@ export function EventCard({ event }: EventCardProps) {
             <span className="mt-1 inline-block border border-on-background px-2 py-0.5 font-mono text-label-data uppercase font-semibold text-on-surface-variant">
               {BRAND.tags.options.find((t) => t.value === event.tag)?.label}
             </span>
+          )}
+          {cohortCount !== undefined && cohortCount > 0 && (
+            <p className="mt-1 font-mono text-label-data uppercase font-semibold text-primary">
+              {BRAND.forYou.cohortBadge(cohortCount)}
+            </p>
           )}
         </div>
       </div>
