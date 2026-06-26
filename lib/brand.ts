@@ -123,6 +123,11 @@ export const BRAND = {
       { value: "resume",         label: "Resume" },
     ],
   },
+  forYou: {
+    sectionTitle: "For you",
+    cohortBadge: (n: number) => `${n} FROM YOUR COHORT`,
+    empty: "NO EVENTS MATCH YOUR PROFILE YET.",
+  },
   manifesto: "We don't do panels. We do arguments. Bring data or leave.",
   footer: {
     links: ["TERMS", "PRIVACY", "CAREERS", "CONTACT"],
