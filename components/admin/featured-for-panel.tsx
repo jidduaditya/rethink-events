@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useFeatureEvent } from "@/hooks/use-feature-event";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ export function FeaturedForPanel({ event }: Props) {
   const [city, setCity] = useState(event.featured_for_city ?? "");
 
   const { mutate, isPending, isSuccess } = useFeatureEvent(event.id);
+  const lastAction = React.useRef<"save" | "clear" | null>(null);
 
   const isActive = !!event.featured_for_goal;
   const canSave = goal !== "" && level !== "" && city !== "";
@@ -28,6 +29,7 @@ export function FeaturedForPanel({ event }: Props) {
 
   function handleSave() {
     if (!canSave) return;
+    lastAction.current = "save";
     mutate({
       featured_for_goal:  goal as ProfileGoal,
       featured_for_level: level as ProfileLevel,
@@ -36,6 +38,7 @@ export function FeaturedForPanel({ event }: Props) {
   }
 
   function handleClear() {
+    lastAction.current = "clear";
     setGoal("");
     setLevel("");
     setCity("");
@@ -120,7 +123,11 @@ export function FeaturedForPanel({ event }: Props) {
             (!canSave || isPending) && "opacity-50 pointer-events-none"
           )}
         >
-          {isPending ? "SAVING..." : isSuccess ? "SAVED" : "FEATURE EVENT"}
+          {isPending && lastAction.current === "save"
+            ? BRAND.profile.submitting
+            : isSuccess && lastAction.current === "save"
+            ? "SAVED"
+            : "FEATURE EVENT"}
         </button>
         {isActive && (
           <button
