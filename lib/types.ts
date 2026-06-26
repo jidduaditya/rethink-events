@@ -2,6 +2,15 @@
 // Replace with generated types once Supabase CLI is connected:
 //   bunx supabase gen types typescript --local > lib/types.ts
 
+export type ProfileGoal =
+  | "break_into_pm"
+  | "grow_as_pm"
+  | "build_products"
+  | "ai_pm"
+  | "interview_prep";
+
+export type ProfileLevel = "aspiring" | "early" | "mid" | "senior";
+
 export type Profile = {
   id: string;
   full_name: string;
@@ -9,12 +18,20 @@ export type Profile = {
   role: "member" | "admin";
   city: string | null;
   trusted_host: boolean;
+  goal: ProfileGoal | null;
+  level: ProfileLevel | null;
   created_at: string;
 };
 
 export type EventStatus = "pending" | "approved" | "rejected" | "cancelled";
 export type EventType = "online" | "offline";
 export type RegisterMode = "native" | "external";
+export type EventTag =
+  | "beginner"
+  | "interview-prep"
+  | "ai-pm"
+  | "build"
+  | "resume";
 
 export type Event = {
   id: string;
@@ -36,6 +53,10 @@ export type Event = {
   ends_at: string;
   timezone: string;
   capacity: number | null;
+  tag: EventTag | null;
+  featured_for_goal: ProfileGoal | null;
+  featured_for_level: ProfileLevel | null;
+  featured_for_city: string | null;
   status: EventStatus;
   cancelled_at: string | null;
   cancellation_reason: string | null;
@@ -207,6 +228,10 @@ export type Database = {
           created_by: string; host_name: string; confirmed_count: number;
           register_mode: string | null;
         } | null;
+      };
+      get_cohort_counts: {
+        Args: { p_event_ids: string[]; p_goal: string; p_level: string; p_city: string };
+        Returns: { event_id: string; cohort_count: number }[];
       };
     };
   };

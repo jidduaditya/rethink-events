@@ -15,6 +15,9 @@ type CreateEventInput = Omit<
   | "cancelled_at"
   | "cancellation_reason"
   | "reminder_sent_at"
+  | "featured_for_goal"
+  | "featured_for_level"
+  | "featured_for_city"
 > & {
   register_mode: RegisterMode;
 };
