@@ -49,11 +49,11 @@ export function FeaturedForPanel({ event }: Props) {
     <div className="border-t-4 border-on-background mt-stack-md pt-stack-md">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-mono text-label-mono uppercase font-semibold text-on-surface-variant">
-          FEATURE FOR AUDIENCE
+          {BRAND.admin.featuredFor.heading}
         </h3>
         {isActive && (
           <span className="border border-primary px-2 py-0.5 font-mono text-label-data uppercase font-semibold text-primary">
-            ACTIVE
+            {BRAND.admin.featuredFor.activeBadge}
           </span>
         )}
       </div>
@@ -61,14 +61,14 @@ export function FeaturedForPanel({ event }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         <div>
           <label className="block font-mono text-label-data uppercase font-semibold text-on-surface-variant mb-2">
-            GOAL
+            {BRAND.admin.featuredFor.goalLabel}
           </label>
           <select
             value={goal}
             onChange={(e) => setGoal(e.target.value as ProfileGoal)}
             className={selectBase}
           >
-            <option value="">— None —</option>
+            <option value="">{BRAND.admin.featuredFor.noneOption}</option>
             {BRAND.profile.goals.map((g) => (
               <option key={g.value} value={g.value}>
                 {g.label}
@@ -79,14 +79,14 @@ export function FeaturedForPanel({ event }: Props) {
 
         <div>
           <label className="block font-mono text-label-data uppercase font-semibold text-on-surface-variant mb-2">
-            LEVEL
+            {BRAND.admin.featuredFor.levelLabel}
           </label>
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value as ProfileLevel)}
             className={selectBase}
           >
-            <option value="">— None —</option>
+            <option value="">{BRAND.admin.featuredFor.noneOption}</option>
             {BRAND.profile.levels.map((l) => (
               <option key={l.value} value={l.value}>
                 {l.label}
@@ -97,14 +97,14 @@ export function FeaturedForPanel({ event }: Props) {
 
         <div>
           <label className="block font-mono text-label-data uppercase font-semibold text-on-surface-variant mb-2">
-            CITY
+            {BRAND.admin.featuredFor.cityLabel}
           </label>
           <select
             value={city}
             onChange={(e) => setCity(e.target.value)}
             className={selectBase}
           >
-            <option value="">— None —</option>
+            <option value="">{BRAND.admin.featuredFor.noneOption}</option>
             {BRAND.cities.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -126,8 +126,8 @@ export function FeaturedForPanel({ event }: Props) {
           {isPending && lastAction.current === "save"
             ? BRAND.profile.submitting
             : isSuccess && lastAction.current === "save"
-            ? "SAVED"
-            : "FEATURE EVENT"}
+            ? BRAND.admin.featuredFor.savedButton
+            : BRAND.admin.featuredFor.saveButton}
         </button>
         {isActive && (
           <button
@@ -135,7 +135,7 @@ export function FeaturedForPanel({ event }: Props) {
             disabled={isPending}
             className="border-2 border-on-background px-6 py-2 font-mono text-label-mono uppercase font-semibold bg-surface text-on-surface hard-shadow hard-shadow-hover hard-shadow-active"
           >
-            CLEAR
+            {BRAND.admin.featuredFor.clearButton}
           </button>
         )}
       </div>

@@ -58,6 +58,17 @@ export const BRAND = {
       checkedIn: "CHECKED IN",
       undo:      "UNDO",
     },
+    featuredFor: {
+      heading:     "FEATURE FOR AUDIENCE",
+      activeBadge: "ACTIVE",
+      goalLabel:   "GOAL",
+      levelLabel:  "LEVEL",
+      cityLabel:   "CITY",
+      noneOption:  "— None —",
+      saveButton:  "FEATURE EVENT",
+      savedButton: "SAVED",
+      clearButton: "CLEAR",
+    },
   },
   ticket: {
     confirmed: "YOU'RE IN",
