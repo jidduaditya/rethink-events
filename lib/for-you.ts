@@ -39,7 +39,7 @@ export function isForYou(
     return (
       event.featured_for_goal  === profile.goal &&
       event.featured_for_level === profile.level &&
-      event.featured_for_city  === (profile.city ?? "")
+      event.featured_for_city  === profile.city
     );
   }
 

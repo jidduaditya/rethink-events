@@ -4,6 +4,7 @@ export type FeedFilters = {
   city: string; // "all" or a city name
   format: "all" | "online" | "offline";
   when: "all" | "today" | "week";
+  tag: "all" | "beginner" | "interview-prep" | "ai-pm" | "build" | "resume";
 };
 
 export function isLive(e: Pick<Event, "starts_at" | "ends_at">, now: Date): boolean {
@@ -11,12 +12,13 @@ export function isLive(e: Pick<Event, "starts_at" | "ends_at">, now: Date): bool
 }
 
 export function matchesFilters(
-  e: Pick<Event, "city" | "event_type" | "starts_at">,
+  e: Pick<Event, "city" | "event_type" | "starts_at" | "tag">,
   f: FeedFilters,
   now: Date
 ): boolean {
   if (f.city !== "all" && (e.city ?? "") !== f.city) return false;
   if (f.format !== "all" && e.event_type !== f.format) return false;
+  if (f.tag !== "all" && e.tag !== f.tag) return false;
   if (f.when !== "all") {
     const start = new Date(e.starts_at);
     const end = new Date(now);

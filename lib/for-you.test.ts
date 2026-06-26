@@ -60,6 +60,10 @@ describe("isForYou — admin featured match", () => {
   it("returns false when only some featured_for fields are set (partial activation)", () => {
     expect(isForYou({ ...featured, featured_for_city: null }, profile)).toBe(false);
   });
+
+  it("returns false when featured_for_city is set but profile.city is null", () => {
+    expect(isForYou({ ...featured, featured_for_city: "Bangalore" }, { ...profile, city: null })).toBe(false);
+  });
 });
 
 describe("isForYou — null profile fields", () => {

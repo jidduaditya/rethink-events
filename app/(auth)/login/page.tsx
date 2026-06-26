@@ -1,21 +1,13 @@
 "use client";
 
-import { Suspense, useState, useCallback, useRef, useEffect } from "react";
+import { Suspense, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND } from "@/lib/brand";
 import { PageThemeToggle } from "@/components/layout/page-theme-toggle";
 
-type Step = "email" | "sent" | "manual_code";
-type ErrorKind = "generic" | "rate_limit" | "spam_hint" | "auth_failed" | null;
-
-const ERROR_MESSAGES: Record<NonNullable<ErrorKind>, string> = {
-  generic: "Something went wrong. Try again.",
-  rate_limit: "Too many attempts. Wait a few minutes.",
-  spam_hint: "Didn't get the email? Check spam or try again in 60s.",
-  auth_failed: "Sign-in link expired or invalid. Try again.",
-};
+const DEV_PASSWORD = "123456";
 
 const SAMPLE_EVENTS = [
   {
@@ -63,96 +55,46 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo") || "/";
-  const urlError = searchParams.get("error");
 
-  const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<ErrorKind>(
-    urlError === "auth_failed" ? "auth_failed" : null
-  );
-  const [cooldown, setCooldown] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
-  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  function startCooldown() {
-    setCooldown(60);
-    if (cooldownRef.current) clearInterval(cooldownRef.current);
-    cooldownRef.current = setInterval(() => {
-      setCooldown((prev) => {
-        if (prev <= 1) {
-          if (cooldownRef.current) clearInterval(cooldownRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }
-
-  useEffect(() => {
-    return () => {
-      if (cooldownRef.current) clearInterval(cooldownRef.current);
-    };
-  }, []);
-
-  const handleSendCode = useCallback(async () => {
-    if (!email.trim() || loading || cooldown > 0) return;
+  const handleLogin = useCallback(async () => {
+    if (!email.trim() || loading) return;
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}`,
-      },
-    });
-    setLoading(false);
-    if (authError) {
-      setError(authError.status === 429 ? "rate_limit" : "generic");
-      return;
-    }
-    setStep("sent");
-    startCooldown();
-  }, [email, loading, cooldown, returnTo]);
 
-  const handleVerifyOtp = useCallback(async () => {
-    if (!otp.trim() || loading) return;
-    setLoading(true);
-    setError(null);
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.verifyOtp({
-      email,
-      token: otp,
-      type: "email",
+    // Server route sets (or resets) the password for this email via the
+    // service role key, handling both new and OTP-created existing accounts.
+    const prep = await fetch("/api/dev-auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim() }),
     });
-    setLoading(false);
-    if (authError) {
-      setError(authError.status === 429 ? "rate_limit" : "generic");
+    if (!prep.ok) {
+      const { error: msg } = await prep.json();
+      setError(msg ?? "Something went wrong.");
+      setLoading(false);
       return;
     }
+
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: DEV_PASSWORD,
+    });
+
+    if (signInError) {
+      setError(signInError.message);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(false);
     router.push(returnTo);
-  }, [email, otp, loading, returnTo, router]);
-
-  const handleResend = useCallback(async () => {
-    if (cooldown > 0 || loading) return;
-    setLoading(true);
-    setError(null);
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}`,
-      },
-    });
-    setLoading(false);
-    if (authError) {
-      setError(authError.status === 429 ? "rate_limit" : "generic");
-      return;
-    }
-    startCooldown();
-    setError("spam_hint");
-  }, [email, cooldown, loading, returnTo]);
+    router.refresh();
+  }, [email, loading, returnTo, router]);
 
   return (
     <div className="min-h-dvh flex flex-col bg-surface text-on-background antialiased">
@@ -194,163 +136,37 @@ function LoginContent() {
 
               <form
                 className="space-y-stack-md"
-                onSubmit={(e) => e.preventDefault()}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleLogin();
+                }}
               >
-                {/* Email step */}
-                {step === "email" && (
-                  <>
-                    <div>
-                      <label className="font-mono text-label-mono block mb-stack-xs uppercase">
-                        Contact
-                      </label>
-                      <input
-                        type="email"
-                        inputMode="email"
-                        autoComplete="email"
-                        placeholder="Phone or email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSendCode();
-                        }}
-                        className="w-full bg-surface border-2 border-on-background p-3 font-sans text-body-md focus:border-primary focus:ring-0 placeholder-on-surface-variant"
-                      />
-                    </div>
+                <div>
+                  <label className="font-mono text-label-mono block mb-stack-xs uppercase">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-surface border-2 border-on-background p-3 font-sans text-body-md focus:border-primary focus:ring-0 placeholder-on-surface-variant"
+                  />
+                </div>
 
-                    {error && (
-                      <p className="font-sans text-body-md text-error">
-                        {ERROR_MESSAGES[error]}
-                      </p>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleSendCode}
-                      disabled={loading || !email.trim()}
-                      className="w-full bg-primary text-on-primary font-mono text-label-mono uppercase p-4 border-2 border-on-background hard-shadow transition-transform hard-shadow-hover mt-stack-md disabled:pointer-events-none disabled:opacity-50"
-                    >
-                      {loading ? "SENDING..." : "Send Code"}
-                    </button>
-                  </>
+                {error && (
+                  <p className="font-sans text-body-md text-error">{error}</p>
                 )}
 
-                {/* Sent step -- check your email */}
-                {step === "sent" && (
-                  <>
-                    <div className="text-center space-y-stack-md">
-                      <p className="font-sans text-body-lg font-bold">
-                        Check your email
-                      </p>
-                      <p className="font-sans text-body-md text-on-surface-variant">
-                        We sent a sign-in link to{" "}
-                        <span className="font-semibold text-on-background">
-                          {email}
-                        </span>
-                      </p>
-                      <p className="font-sans text-body-md text-on-surface-variant">
-                        Click the link in your email to sign in.
-                      </p>
-                    </div>
-
-                    {error && (
-                      <p className="font-sans text-body-md text-error">
-                        {ERROR_MESSAGES[error]}
-                      </p>
-                    )}
-
-                    {/* Resend */}
-                    <div className="text-center">
-                      {cooldown > 0 ? (
-                        <span className="font-mono text-label-mono uppercase text-on-background/60">
-                          RESEND IN {cooldown}S
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleResend}
-                          disabled={loading}
-                          className="font-mono text-label-mono uppercase text-primary underline underline-offset-4 disabled:opacity-50"
-                        >
-                          RESEND EMAIL
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Manual code fallback */}
-                    <button
-                      type="button"
-                      onClick={() => setStep("manual_code")}
-                      className="w-full text-center font-mono text-label-mono uppercase text-on-background/60 underline underline-offset-4"
-                    >
-                      ENTER CODE MANUALLY
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStep("email");
-                        setOtp("");
-                        setError(null);
-                      }}
-                      className="w-full text-center font-mono text-label-mono uppercase text-on-background/60 underline underline-offset-4"
-                    >
-                      USE DIFFERENT EMAIL
-                    </button>
-                  </>
-                )}
-
-                {/* Manual code entry (fallback) */}
-                {step === "manual_code" && (
-                  <>
-                    <div>
-                      <label className="font-mono text-label-mono block mb-stack-xs uppercase">
-                        Code
-                      </label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        placeholder="000000"
-                        maxLength={6}
-                        value={otp}
-                        onChange={(e) =>
-                          setOtp(e.target.value.replace(/\D/g, ""))
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleVerifyOtp();
-                        }}
-                        className="w-full bg-surface border-2 border-on-background p-3 font-sans text-body-md placeholder-on-surface-variant tracking-[0.3em] focus:border-primary focus:ring-0"
-                      />
-                    </div>
-
-                    {error && (
-                      <p className="font-sans text-body-md text-error">
-                        {ERROR_MESSAGES[error]}
-                      </p>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleVerifyOtp}
-                      disabled={loading || otp.length < 6}
-                      className="w-full bg-primary text-on-primary font-mono text-label-mono uppercase p-4 border-2 border-on-background hard-shadow transition-transform hard-shadow-hover mt-stack-md disabled:pointer-events-none disabled:opacity-50"
-                    >
-                      {loading ? "VERIFYING..." : "VERIFY"}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStep("sent");
-                        setOtp("");
-                        setError(null);
-                      }}
-                      className="w-full text-center font-mono text-label-mono uppercase text-on-background/60 underline underline-offset-4"
-                    >
-                      BACK
-                    </button>
-                  </>
-                )}
+                <button
+                  type="submit"
+                  disabled={loading || !email.trim()}
+                  className="w-full bg-primary text-on-primary font-mono text-label-mono uppercase p-4 border-2 border-on-background hard-shadow transition-transform hard-shadow-hover mt-stack-md disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {loading ? "LOGGING IN..." : "LOG IN"}
+                </button>
               </form>
             </div>
           </div>

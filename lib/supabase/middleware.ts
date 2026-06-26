@@ -62,16 +62,5 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Authenticated users must also be on the allowlist.
-  const { data: allowed } = await supabase.rpc("is_allowlisted", {
-    p_email: user.email ?? "",
-  });
-
-  if (!allowed) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/not-allowed";
-    return NextResponse.redirect(url);
-  }
-
   return supabaseResponse;
 }

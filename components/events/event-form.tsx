@@ -2,7 +2,7 @@
 
 import { useState, useCallback, type FormEvent } from "react";
 import { Wifi, MapPin } from "lucide-react";
-import type { Event, EventType, RegisterMode } from "@/lib/types";
+import type { Event, EventTag, EventType, RegisterMode } from "@/lib/types";
 import { validateEventForm } from "@/lib/validators";
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
@@ -24,6 +24,7 @@ type EventFormData = {
   speaker_photo_url: string;
   register_mode: RegisterMode;
   register_url: string;
+  tag: string; // "" means no tag selected
 };
 
 export type PreparedEventData = {
@@ -44,6 +45,7 @@ export type PreparedEventData = {
   speaker_photo_url: string | null;
   register_mode: RegisterMode;
   register_url: string | null;
+  tag: EventTag | null;
 };
 
 function prepareFormData(form: EventFormData): PreparedEventData {
@@ -66,6 +68,7 @@ function prepareFormData(form: EventFormData): PreparedEventData {
     speaker_photo_url: trimOrNull(form.speaker_photo_url),
     register_mode: form.register_mode,
     register_url: form.register_mode === "external" ? trimOrNull(form.register_url) : null,
+    tag: (form.tag.trim() as EventTag) || null,
   };
 }
 
@@ -101,6 +104,7 @@ export function EventForm({ event, onSubmit, isSubmitting }: EventFormProps) {
     speaker_photo_url: event?.speaker_photo_url ?? "",
     register_mode: event?.register_mode ?? "native",
     register_url: event?.register_url ?? "",
+    tag: event?.tag ?? "",
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof EventFormData, string>>>({});
@@ -236,6 +240,42 @@ export function EventForm({ event, onSubmit, isSubmitting }: EventFormProps) {
             placeholder="https://..."
             className={inputBase}
           />
+        </div>
+      </div>
+
+      {/* Tag */}
+      <div className="mb-6">
+        <label className="block font-mono text-label-mono uppercase font-semibold text-on-surface-variant mb-2">
+          {BRAND.tags.label}
+        </label>
+        <div className="flex flex-wrap border-2 border-on-background w-fit">
+          <button
+            type="button"
+            onClick={() => update("tag", "")}
+            className={cn(
+              "min-h-[44px] px-4 font-mono text-label-mono uppercase font-semibold transition-colors border-r-2 border-on-background",
+              form.tag === ""
+                ? "bg-on-background text-surface"
+                : "bg-surface text-on-surface hover:bg-secondary-fixed"
+            )}
+          >
+            {BRAND.tags.none}
+          </button>
+          {BRAND.tags.options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => update("tag", opt.value)}
+              className={cn(
+                "min-h-[44px] px-4 font-mono text-label-mono uppercase font-semibold transition-colors border-r-2 border-on-background last:border-r-0",
+                form.tag === opt.value
+                  ? "bg-primary text-on-primary"
+                  : "bg-surface text-on-surface hover:bg-secondary-fixed"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 

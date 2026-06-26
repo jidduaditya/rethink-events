@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { BRAND } from "@/lib/brand";
 import type { FeedFilters } from "@/lib/feed-filters";
 
 type FilterBarProps = {
@@ -104,6 +105,31 @@ export function FilterBar({ value, cities, onChange }: FilterBarProps) {
         active={value.when}
         onSelect={(when) => onChange({ ...value, when })}
       />
+
+      {/* Tag select */}
+      <div className="flex flex-col gap-2">
+        <label
+          htmlFor="filter-tag"
+          className="font-mono text-label-data uppercase font-semibold text-on-surface-variant"
+        >
+          Tag
+        </label>
+        <select
+          id="filter-tag"
+          value={value.tag}
+          onChange={(e) =>
+            onChange({ ...value, tag: e.target.value as FeedFilters["tag"] })
+          }
+          className="min-h-[44px] border-2 border-on-background bg-surface px-3 font-mono text-label-mono uppercase font-semibold text-on-surface"
+        >
+          <option value="all">All tags</option>
+          {BRAND.tags.options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }

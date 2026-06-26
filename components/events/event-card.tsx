@@ -75,6 +75,11 @@ export function EventCard({ event }: EventCardProps) {
           <h3 className="text-body-lg font-bold uppercase text-on-surface">
             {event.title}
           </h3>
+          {event.tag && (
+            <span className="mt-1 inline-block border border-on-background px-2 py-0.5 font-mono text-label-data uppercase font-semibold text-on-surface-variant">
+              {BRAND.tags.options.find((t) => t.value === event.tag)?.label}
+            </span>
+          )}
         </div>
       </div>
     </Link>

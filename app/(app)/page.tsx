@@ -13,7 +13,7 @@ import { matchesFilters, isLive, type FeedFilters } from "@/lib/feed-filters";
 import type { EventWithOrganizer } from "@/lib/types";
 import { BRAND } from "@/lib/brand";
 
-const DEFAULT_FILTERS: FeedFilters = { city: "all", format: "all", when: "all" };
+const DEFAULT_FILTERS: FeedFilters = { city: "all", format: "all", when: "all", tag: "all" };
 
 function SkeletonCard() {
   return (
@@ -84,7 +84,7 @@ export default function FeedPage() {
     isLoading,
     isError,
     refetch,
-  } = useEvents({ city: filters.city, format: filters.format });
+  } = useEvents({ city: filters.city, format: filters.format, tag: filters.tag });
 
   const { data: registrations } = useRegistrations(userId);
 

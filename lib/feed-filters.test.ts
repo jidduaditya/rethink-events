@@ -7,9 +7,10 @@ const base = {
   ends_at: "2030-06-10T11:00:00Z",
   city: "Bangalore",
   event_type: "offline",
-} satisfies Pick<Event, "starts_at" | "ends_at" | "city" | "event_type">;
+  tag: null,
+} satisfies Pick<Event, "starts_at" | "ends_at" | "city" | "event_type" | "tag">;
 
-const ALL: FeedFilters = { city: "all", format: "all", when: "all" };
+const ALL: FeedFilters = { city: "all", format: "all", when: "all", tag: "all" };
 
 describe("matchesFilters", () => {
   it("passes when all filters are 'all'", () => {
@@ -32,7 +33,7 @@ describe("matchesFilters", () => {
       const later = {
         ...base,
         starts_at: "2030-06-10T12:30:00Z",
-      } satisfies Pick<Event, "starts_at" | "ends_at" | "city" | "event_type">;
+      } satisfies Pick<Event, "starts_at" | "ends_at" | "city" | "event_type" | "tag">;
       expect(matchesFilters(later, { ...ALL, when: "today" }, now)).toBe(true);
     });
     it("fails an event tomorrow", () => {
@@ -40,7 +41,7 @@ describe("matchesFilters", () => {
       const tomorrow = {
         ...base,
         starts_at: "2030-06-12T00:00:00Z",
-      } satisfies Pick<Event, "starts_at" | "ends_at" | "city" | "event_type">;
+      } satisfies Pick<Event, "starts_at" | "ends_at" | "city" | "event_type" | "tag">;
       expect(matchesFilters(tomorrow, { ...ALL, when: "today" }, now)).toBe(false);
     });
   });
@@ -51,14 +52,14 @@ describe("matchesFilters", () => {
       const threeDays = {
         ...base,
         starts_at: "2030-06-13T08:00:00Z",
-      } satisfies Pick<Event, "starts_at" | "ends_at" | "city" | "event_type">;
+      } satisfies Pick<Event, "starts_at" | "ends_at" | "city" | "event_type" | "tag">;
       expect(matchesFilters(threeDays, { ...ALL, when: "week" }, now)).toBe(true);
     });
     it("fails an event 10 days out", () => {
       const tenDays = {
         ...base,
         starts_at: "2030-06-20T08:00:00Z",
-      } satisfies Pick<Event, "starts_at" | "ends_at" | "city" | "event_type">;
+      } satisfies Pick<Event, "starts_at" | "ends_at" | "city" | "event_type" | "tag">;
       expect(matchesFilters(tenDays, { ...ALL, when: "week" }, now)).toBe(false);
     });
   });
@@ -67,7 +68,7 @@ describe("matchesFilters", () => {
     const noCity = {
       ...base,
       city: null,
-    } satisfies Pick<Event, "starts_at" | "ends_at" | "city" | "event_type">;
+    } satisfies Pick<Event, "starts_at" | "ends_at" | "city" | "event_type" | "tag">;
     it("fails when a specific city filter is set", () => {
       expect(matchesFilters(noCity, { ...ALL, city: "Bangalore" }, new Date())).toBe(false);
     });

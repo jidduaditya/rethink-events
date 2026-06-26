@@ -9,6 +9,7 @@ const PAGE_SIZE = 20;
 export function useEvents(filters?: {
   city?: string;
   format?: "all" | "online" | "offline";
+  tag?: string;
 }) {
   const supabase = createClient();
 
@@ -18,6 +19,7 @@ export function useEvents(filters?: {
       "feed",
       filters?.city ?? "all",
       filters?.format ?? "all",
+      filters?.tag ?? "all",
     ],
     queryFn: async ({ pageParam }) => {
       // Include native registration IDs so EventCard can derive capacity state.
@@ -37,6 +39,10 @@ export function useEvents(filters?: {
 
       if (filters?.format && filters.format !== "all") {
         query = query.eq("event_type", filters.format);
+      }
+
+      if (filters?.tag && filters.tag !== "all") {
+        query = query.eq("tag", filters.tag);
       }
 
       if (pageParam) {

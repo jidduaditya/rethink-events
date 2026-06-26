@@ -42,9 +42,9 @@ export default async function AppLayout({
     profile = created;
   }
 
-  // If profile exists but name is empty, show completion screen
-  if (profile && profile.full_name === "") {
-    return <ProfileCompletion profileId={profile.id} />;
+  // If profile exists but name, goal, or level is missing, show completion screen
+  if (profile && (profile.full_name === "" || !profile.goal || !profile.level)) {
+    return <ProfileCompletion profile={profile} />;
   }
 
   return <AppShell>{children}</AppShell>;
