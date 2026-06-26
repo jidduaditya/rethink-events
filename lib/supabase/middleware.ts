@@ -1,11 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Public paths accessible without authentication and without allowlist check.
-// Event detail (/e/), ticket pages (/t/), login, not-allowed, and OG image
-// routes must all render for unauthenticated visitors.
-// Fail-closed: every other path stays behind the allowlist gate.
+// Public paths accessible without authentication.
+// Event detail (/e/), ticket pages (/t/), login, not-allowed, OG image
+// routes, and API routes must all pass through without redirect.
+// API routes handle their own auth — middleware must not redirect them.
 const PUBLIC_PATH_PREFIXES = [
+  "/api/",
   "/e/",
   "/t/",
   "/login",
