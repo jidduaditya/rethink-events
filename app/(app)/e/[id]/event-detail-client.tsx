@@ -15,6 +15,7 @@ import { ConflictDialog } from "@/components/events/conflict-dialog";
 import { CapacityWarning } from "@/components/events/capacity-warning";
 import { AttendeeCount } from "@/components/events/attendee-count";
 import { AttendeesPanel } from "@/components/admin/attendees-panel";
+import { FeaturedForPanel } from "@/components/admin/featured-for-panel";
 import { CancelDialog } from "@/components/events/cancel-dialog";
 import { UpdatesSection } from "@/components/events/updates-section";
 import { BRAND } from "@/lib/brand";
@@ -387,6 +388,13 @@ export function EventDetailClient({
       {isHost && (
         <div className="mx-auto max-w-7xl px-grid-margin pb-stack-xl">
           <AttendeesPanel event={event} />
+        </div>
+      )}
+
+      {/* Admin-only: feature this event for a specific audience segment */}
+      {isAdmin && event && (
+        <div className="mx-auto max-w-7xl px-grid-margin pb-stack-xl">
+          <FeaturedForPanel event={event} />
         </div>
       )}
     </div>
