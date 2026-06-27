@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { MOCK_EVENTS, MOCK_MY_RSVPS, MOCK_ME } from "@/lib/mock";
-
-// ponytail: Phase 1 — mock data only. Real ticket with auth check lands in slice 3.4.
+import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
@@ -19,10 +18,26 @@ function formatTime(iso: string) {
 
 export default async function TicketPage({ params }: { params: Promise<{ rsvpId: string }> }) {
   const { rsvpId } = await params;
-  const rsvp = MOCK_MY_RSVPS.find((r) => r.id === rsvpId);
+  const { userId, profile } = await requireAuth();
+
+  const supabase = await createClient();
+
+  const { data: rsvp } = await supabase
+    .from("rsvps")
+    .select("id, event_id, status")
+    .eq("id", rsvpId)
+    .eq("user_id", userId)
+    .eq("status", "going")
+    .maybeSingle();
+
   if (!rsvp) notFound();
 
-  const event = MOCK_EVENTS.find((e) => e.id === rsvp.event_id);
+  const { data: event } = await supabase
+    .from("events")
+    .select("id, title, description, city, venue, starts_at, ends_at")
+    .eq("id", rsvp.event_id)
+    .single();
+
   if (!event) notFound();
 
   const gcalUrl = new URL("https://calendar.google.com/calendar/render");
@@ -33,7 +48,6 @@ export default async function TicketPage({ params }: { params: Promise<{ rsvpId:
   );
   if (event.venue) gcalUrl.searchParams.set("location", event.venue);
 
-  // ICS for download
   const icsContent = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -52,13 +66,10 @@ export default async function TicketPage({ params }: { params: Promise<{ rsvpId:
   return (
     <AppShell>
       <div className="mx-auto max-w-2xl px-grid-margin py-stack-xl">
-        {/* stub card */}
         <div className="border-4 border-on-background bg-background hard-shadow">
-          {/* top accent: city color stripe */}
           <div className="h-3 w-full bg-secondary-container" />
 
           <div className="p-8">
-            {/* brand + TICKET label */}
             <div className="flex items-center justify-between">
               <span className="font-mono text-label-data font-semibold uppercase tracking-widest text-on-surface-variant">
                 RETHINK EVENTS
@@ -68,12 +79,10 @@ export default async function TicketPage({ params }: { params: Promise<{ rsvpId:
               </span>
             </div>
 
-            {/* title */}
             <h1 className="mt-stack-lg font-serif text-headline-lg font-black uppercase leading-tight">
               {event.title}
             </h1>
 
-            {/* tear line */}
             <div className="my-6 border-y-4 border-dashed border-on-background py-4">
               <div className="grid grid-cols-2 gap-4">
                 <TicketField label="DATE" value={formatDate(event.starts_at)} />
@@ -83,23 +92,21 @@ export default async function TicketPage({ params }: { params: Promise<{ rsvpId:
               </div>
             </div>
 
-            {/* attendee */}
             <div className="flex items-end justify-between">
               <div>
                 <p className="font-mono text-label-data uppercase tracking-widest text-on-surface-variant">
                   ATTENDEE
                 </p>
                 <p className="mt-1 font-mono text-label-mono font-semibold uppercase">
-                  {MOCK_ME.full_name}
+                  {profile.full_name ?? "—"}
                 </p>
               </div>
-              {/* QR placeholder */}
+              {/* ponytail: QR is V2 */}
               <div className="flex size-20 items-center justify-center border-2 border-on-background bg-surface-container">
                 <span className="font-mono text-label-data uppercase text-on-surface-variant">QR</span>
               </div>
             </div>
 
-            {/* RSVP id */}
             <p className="mt-4 font-mono text-label-data uppercase text-on-surface-variant">
               ID: {rsvpId.toUpperCase()}
             </p>
@@ -108,7 +115,6 @@ export default async function TicketPage({ params }: { params: Promise<{ rsvpId:
           <div className="h-2 w-full bg-on-background" />
         </div>
 
-        {/* actions */}
         <div className="mt-stack-lg flex flex-col gap-3 sm:flex-row">
           <Link
             href={gcalUrl.toString()}

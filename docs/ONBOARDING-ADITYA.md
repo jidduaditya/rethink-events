@@ -68,7 +68,7 @@ House rules:
 - Match the existing design tokens in `web/app/globals.css` (Electric Zine
   system). Use the `BRAND` copy dictionary in `web/lib/brand.ts`.
 
-## 5. What's already done (Phases 0 + 2)
+## 5. What's already done
 
 **Phase 0** — `web/` has: the Electric Zine design system + layout + theme
 provider, Supabase SSR clients (`web/lib/supabase/*`), the Next 16 `proxy.ts`
@@ -82,22 +82,31 @@ clean (`npm run build`).
 - `web/supabase/migrations/0003_rls.sql` — full RLS role×state matrix
 - `web/tests/rls.test.ts` — 37 passing regression tests (run `npm test`)
 
+**Phase 1** — all screens exist on `main` with full UI but mock data. You don't
+need to build any new pages — your slices wire real DB/actions into them.
+
+**Slice 3.3** (public event page) — **done on main**:
+- `web/app/(app)/e/[id]/page.tsx` — reads from real DB, auth-aware going count
+- `web/app/(app)/e/[id]/opengraph-image.tsx` — edge OG image
+- `web/supabase/migrations/0005_public_rsvp_count.sql` — apply this if setting
+  up a fresh project (allows anon to count going RSVPs on published events)
+
+**Slice 3.4** (RSVP + cancel + ticket) — **done on main**:
+- `web/app/actions/rsvp.ts` — `rsvpToEvent` (calls DB function, redirects to
+  ticket) + `cancelRsvp` (sets status → cancelled) Server Actions
+- `web/app/(app)/e/[id]/page.tsx` — RSVP button and cancel button wired
+- `web/app/(app)/ticket/[rsvpId]/page.tsx` — reads from real DB, shows
+  attendee name, ICS download, Google Calendar link
+
+**Slice 3.5** (curated feed) — **done on main**:
+- `web/app/page.tsx` — real DB feed: published events, going counts batched,
+  For You (featured_for matched against profile), city filter via `?city=`
+
 **To connect to the Supabase project:** copy `web/.env.local.example` to
 `web/.env.local` and fill in the three Supabase keys (ask Krishna for the
 project URL + keys). Apply the migrations via the Supabase SQL editor in order
-(0001 → 0002 → 0003 → 0004) if setting up a fresh local project, or ask Krishna
-to add you to the hosted project.
-
-**Your data-coupled components from the old repo** (event-card, event-form,
-rsvp-button) were not harvested — rebuild them against the real schema in your
-slices. The JSX/styling approach is the same; the data wiring changes (RSC +
-Server Actions instead of react-query hooks).
-
-**Phase 1** (UI skeleton on mock data) is being done by the repo owner in
-parallel. Your slices in Phase 3 do NOT depend on Phase 1 completing first —
-they bind real data to screens. If Phase 1 screens don't exist yet when you
-start a slice, stub the page and wire the data; the owner will reconcile the
-visual layer.
+(0001 → 0002 → 0003 → 0004 → 0005) if setting up a fresh local project, or ask
+Krishna to add you to the hosted project.
 
 ## 6. Your slices (Phase 3)
 
@@ -146,7 +155,7 @@ is published; takedown → event not visible to anon; trust toggle persists.
 
 ---
 
-### 3.4 — RSVP + capacity + ticket + calendar
+### ~~3.4 — RSVP + capacity + ticket + calendar~~ ✅ DONE (on main)
 **Branch:** `slice/3.4-rsvp-ticket`
 **Screens:** RSVP button wired on `app/(app)/e/[id]/page.tsx`; ticket stub at
 `app/(app)/ticket/[rsvpId]/page.tsx`.

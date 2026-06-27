@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/server";
+import { rsvpToEvent, cancelRsvp } from "@/app/actions/rsvp";
 
 const TAG_LABELS: Record<string, string> = {
   beginner: "BEGINNER",
@@ -195,14 +196,23 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               >
                 VIEW TICKET →
               </Link>
+              <form action={cancelRsvp.bind(null, myRsvp!.id, event.id)}>
+                <button
+                  type="submit"
+                  className="font-mono text-label-mono uppercase text-on-surface-variant underline underline-offset-4 hover:text-error transition-colors"
+                >
+                  {BRAND.rsvp.cancel}
+                </button>
+              </form>
             </>
           ) : isFull ? (
             <p className="font-mono text-label-mono uppercase text-on-surface-variant">
               {BRAND.errors.full}
             </p>
           ) : (
-            // ponytail: RSVP action stub — slice 3.4 wires the Server Action
-            <Button size="lg">{BRAND.rsvp.going}</Button>
+            <form action={rsvpToEvent.bind(null, event.id)}>
+              <Button type="submit" size="lg">{BRAND.rsvp.going}</Button>
+            </form>
           )}
         </div>
 
