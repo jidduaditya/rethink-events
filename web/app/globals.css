@@ -10,10 +10,10 @@
    ============================================================ */
 
 @theme inline {
-  /* --- Fonts (reference Next.js font CSS variables) --- */
+  /* --- Fonts — single typeface system, Source Serif 4 only --- */
   --font-serif: var(--font-source-serif), "Source Serif 4", serif;
-  --font-sans: var(--font-ibm-plex-sans), "IBM Plex Sans", sans-serif;
-  --font-mono: var(--font-ibm-plex-mono), "IBM Plex Mono", monospace;
+  --font-sans: var(--font-source-serif), "Source Serif 4", serif;
+  --font-mono: var(--font-source-serif), "Source Serif 4", serif;
 
   /* --- Font sizes — Tailwind v4 uses --text-* not --font-size-* --- */
   --text-display-xl: 120px;

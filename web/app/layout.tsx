@@ -1,31 +1,14 @@
 import type { Metadata } from "next";
-import {
-  Source_Serif_4,
-  IBM_Plex_Sans,
-  IBM_Plex_Mono,
-} from "next/font/google";
+import { Source_Serif_4 } from "next/font/google";
 import { Providers } from "@/lib/providers";
 import "./globals.css";
 
+// ponytail: single typeface system — Source Serif 4 only, full weight range per typography spec
 const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
-  weight: ["700", "800", "900"],
+  weight: ["400", "500", "600", "700", "800", "900"],
   display: "swap",
   variable: "--font-source-serif",
-});
-
-const ibmPlexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  display: "swap",
-  variable: "--font-ibm-plex-sans",
-});
-
-const ibmPlexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "600"],
-  display: "swap",
-  variable: "--font-ibm-plex-mono",
 });
 
 export const metadata: Metadata = {
@@ -59,7 +42,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sourceSerif.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} h-full`}
+      className={`${sourceSerif.variable} h-full`}
       suppressHydrationWarning
     >
       <head>
