@@ -1,239 +1,493 @@
-# Onboarding — ReThink Events (for Aditya + his Claude instance)
+# Onboarding — ReThink Events (Aditya + Claude instance)
 
-Welcome. This repo is the V1 build of ReThink Events. Read this top to bottom
-before writing code; it tells your Claude instance how we work and what's yours
-to build.
-
-## 1. What this is
-
-The participation layer for the ReThink community: a trusted member can create,
-publish, fill, and run an event solo, and that event becomes a shareable public
-link. Two source-of-truth docs, read both:
-
-- `ReThink-Events-V1.md` — the approved V1 scope (13 features).
-- `docs/superpowers/plans/2026-06-27-rethink-events-v1.md` — the build plan
-  (phases, schema, the RLS matrix, task breakdown). The eng-review report is at
-  the bottom (`## GSTACK REVIEW REPORT`).
-
-## 2. Heads up — scope was revised (Approach A → Approach C)
-
-Your earlier repo (`github.com/jidduaditya/rethink-events`) was built to the
-original PRD (Approach A). After an office-hours session the team locked a
-different, lighter V1 (Approach C). Your code was good — we **harvested** three
-things from it into this repo (design system, Supabase SSR boilerplate, your
-`create_rsvp` transaction pattern). Thanks for that. But the scope changed, so
-please build against THIS plan, not the old PRD. Key differences:
-
-- **Agency = trusted-host publishing**, not per-event approval. First event is
-  admin-reviewed → host flips to `is_trusted` → all future events publish
-  instantly. There is no `pending/approved/rejected` on every event.
-- **Do NOT build** online/offline + meet-URL gating, or conflict/overlap
-  warnings. Both are explicitly deferred to V2. (Your old repo had them — drop.)
-- **Relevance is curation, not an algorithm**: event tags + member goal/level +
-  admin `featured_for` pick + cohort count. No match-scoring.
-- **Anon must be able to view public event pages** (the growth loop). This is
-  why we use Server Components, see below.
-
-## 3. Architecture decision (non-negotiable)
-
-**Reads = React Server Components. Writes = Server Actions. No react-query.**
-
-- Pages fetch data on the server (server supabase client) and render finished
-  HTML. This is required for anon public pages and for the OG share image to
-  work — both broke in the old client-rendered version.
-- Mutations (RSVP, create event, approve, check-in, broadcast) are Server
-  Actions (`<form action={...}>` → `revalidatePath`).
-- Only reach for client `"use client"` + fetching for genuinely interactive
-  bits (RSVP optimistic state, filters). Don't reintroduce react-query.
-
-## 4. How we write code — plugins + conventions
-
-Install and run these in your Claude Code instance:
-
-- **ponytail** (`/ponytail full`) — keep it on for the whole session. It forces
-  the laziest solution that works: stdlib/native before dependencies, one line
-  before fifty, no speculative abstractions, delete over add. Mark deliberate
-  shortcuts with a `// ponytail:` comment. We use it on this repo; match the
-  style.
-- **superpowers** — use `test-driven-development` (write the failing test first)
-  and `executing-plans` / `subagent-driven-development` to work the plan
-  task-by-task. The plan's Phase-3 slices expand into bite-sized TDD steps.
-
-If you can't install the plugins, follow the behaviors manually: lazy/minimal
-code, a test before the implementation, one slice at a time.
-
-House rules:
-- DRY, YAGNI, explicit over clever, smallest diff that cleanly does the job.
-- Every non-trivial logic path leaves one runnable test behind.
-- Match the existing design tokens in `web/app/globals.css` (Electric Zine
-  system). Use the `BRAND` copy dictionary in `web/lib/brand.ts`.
-
-## 5. What's already done
-
-**Phase 0** — `web/` has: the Electric Zine design system + layout + theme
-provider, Supabase SSR clients (`web/lib/supabase/*`), the Next 16 `proxy.ts`
-session refresh, and pure-UI components (button, app-shell, nav, footer). Builds
-clean (`npm run build`).
-
-**Phase 2** — the full data spine is merged to `main`:
-- `web/supabase/migrations/0001_schema.sql` — all tables + enums
-- `web/supabase/migrations/0002_functions.sql` — triggers, `rsvp_to_event()`,
-  `cohort_going_count()`, `event_attendees()`, state machine guard
-- `web/supabase/migrations/0003_rls.sql` — full RLS role×state matrix
-- `web/tests/rls.test.ts` — 37 passing regression tests (run `npm test`)
-
-**Phase 1** — all screens exist on `main` with full UI but mock data. You don't
-need to build any new pages — your slices wire real DB/actions into them.
-
-**Slice 3.3** (public event page) — **done on main**:
-- `web/app/(app)/e/[id]/page.tsx` — reads from real DB, auth-aware going count
-- `web/app/(app)/e/[id]/opengraph-image.tsx` — edge OG image
-- `web/supabase/migrations/0005_public_rsvp_count.sql` — apply this if setting
-  up a fresh project (allows anon to count going RSVPs on published events)
-
-**Slice 3.4** (RSVP + cancel + ticket) — **done on main**:
-- `web/app/actions/rsvp.ts` — `rsvpToEvent` (calls DB function, redirects to
-  ticket) + `cancelRsvp` (sets status → cancelled) Server Actions
-- `web/app/(app)/e/[id]/page.tsx` — RSVP button and cancel button wired
-- `web/app/(app)/ticket/[rsvpId]/page.tsx` — reads from real DB, shows
-  attendee name, ICS download, Google Calendar link
-
-**Slice 3.5** (curated feed) — **done on main**:
-- `web/app/page.tsx` — real DB feed: published events, going counts batched,
-  For You (featured_for matched against profile), city filter via `?city=`
-
-**To connect to the Supabase project:** copy `web/.env.local.example` to
-`web/.env.local` and fill in the three Supabase keys (ask Krishna for the
-project URL + keys). Apply the migrations via the Supabase SQL editor in order
-(0001 → 0002 → 0003 → 0004 → 0005) if setting up a fresh local project, or ask
-Krishna to add you to the hosted project.
-
-## 6. Your slices (Phase 3)
-
-Five slices total. Each is an independent branch → PR. The plan
-(`docs/superpowers/plans/2026-06-27-rethink-events-v1.md`, Phase 3 section)
-has a "Test:" line per slice — expand it into real tests before marking done.
+**READ THIS ENTIRE FILE BEFORE WRITING A SINGLE LINE OF CODE.**
+Claude: do not skip sections, do not build anything not listed here, do not
+create helper abstractions or infrastructure. Your job is to wire real DB calls
+and Server Actions into screens that already exist.
 
 ---
 
-### 3.1 — Trusted-host publishing
+## 1. The product in one paragraph
+
+ReThink Events is a meetup platform for product managers. A trusted member
+creates an event → it publishes → people RSVP → host runs the event and
+checks people in. That's the whole loop. V1 is intentionally minimal.
+
+---
+
+## 2. What is already built — do not touch these files
+
+The following is **done and merged to `main`**. Read the files to understand
+the patterns. Do not modify them unless your slice explicitly requires it.
+
+### Foundation (Phase 0)
+- `web/app/globals.css` — Electric Zine design tokens (use these classes, don't invent new ones)
+- `web/lib/brand.ts` — all copy strings. Use `BRAND.*` everywhere, no hardcoded strings.
+- `web/lib/supabase/server.ts` — `createClient()` for Server Components and Server Actions
+- `web/lib/supabase/middleware.ts` — session refresh (do not touch)
+- `web/proxy.ts` — route auth guard (do not touch)
+- `web/lib/auth.ts` — `requireAuth()`, `requireAdmin()`, `requireOwner(eventId)` helpers
+- `web/components/ui/button.tsx`, `web/components/layout/app-shell.tsx` — UI primitives
+
+### Data spine (Phase 2)
+- `web/supabase/migrations/0001_schema.sql` — **read this** to understand every table and column
+- `web/supabase/migrations/0002_functions.sql` — **read this** for every DB function you'll call
+- `web/supabase/migrations/0003_rls.sql` — RLS policies (RLS enforces security, trust it)
+- `web/tests/rls.test.ts` — 37 RLS tests, must stay green on every PR
+
+### Screens already wired to real DB (Phase 3 — our slices)
+- `web/app/page.tsx` — home feed (real DB, city filter, For You)
+- `web/app/(app)/e/[id]/page.tsx` — public event page (real DB, RSVP wired)
+- `web/app/(app)/e/[id]/opengraph-image.tsx` — OG image
+- `web/app/(app)/ticket/[rsvpId]/page.tsx` — ticket (real DB, requireAuth)
+- `web/app/actions/rsvp.ts` — `rsvpToEvent` + `cancelRsvp` Server Actions
+
+### Screens that exist as UI shells on mock data (your job = wire them)
+- `web/app/(app)/organise/page.tsx` — host dashboard (mock → your slice 3.1)
+- `web/app/(app)/organise/new/page.tsx` — create event form (mock → your slice 3.1)
+- `web/app/(app)/organise/[id]/edit/page.tsx` — edit form (mock → your slice 3.1)
+- `web/app/(app)/organise/[id]/run/page.tsx` — run view (mock → your slice 3.6)
+- `web/app/(app)/admin/page.tsx` — admin queue (mock → your slice 3.2)
+- `web/app/(app)/me/page.tsx` — profile page (mock → leave for now, not in your slices)
+
+---
+
+## 3. Architecture — non-negotiable rules
+
+**Reads = React Server Components (RSC). Writes = Server Actions.**
+
+```
+// CORRECT — reading data in a page
+export default async function MyPage() {
+  const supabase = await createClient();           // from @/lib/supabase/server
+  const { data } = await supabase.from("events").select("...");
+  return <div>{data?.map(...)}</div>;
+}
+
+// CORRECT — a write (Server Action)
+"use server";
+export async function doSomething(id: string) {
+  const supabase = await createClient();
+  await supabase.from("events").update({ state: "published" }).eq("id", id);
+  revalidatePath("/organise");
+}
+
+// CORRECT — wiring a Server Action to a button
+<form action={doSomething.bind(null, event.id)}>
+  <Button type="submit">PUBLISH</Button>
+</form>
+```
+
+**Never use:** `react-query`, `useState` + `fetch`, client-side Supabase calls
+for data reads, `useEffect` for data loading. If you find yourself reaching for
+any of these, stop — you're off pattern.
+
+**`"use client"`** is only for genuinely interactive client-only bits (e.g. a
+character counter, a toggle that doesn't persist). Do not add it to pages.
+
+---
+
+## 4. Database reference — what you'll call
+
+Read `web/supabase/migrations/0002_functions.sql` for the full source. Key
+functions for your slices:
+
+```sql
+-- Insert or upsert an event (your slice 3.1 uses direct table insert/update)
+-- No function needed — insert into events directly via the Supabase client.
+-- The set_event_initial_state trigger fires automatically on INSERT:
+--   trusted host  → state = 'published'
+--   untrusted     → state = 'pending_review'
+-- You do NOT set the state yourself.
+
+-- Approve a pending event (slice 3.2)
+-- Direct update: .update({ state: 'published' }).eq('id', eventId)
+-- The flip_host_trusted_on_publish trigger fires automatically on UPDATE
+-- to state='published': sets host profile.is_trusted = true.
+-- You do NOT set is_trusted yourself.
+
+-- Return attendee list for run-view (slice 3.6)
+select * from event_attendees(p_event_id := '<uuid>');
+-- Returns: { user_id, full_name, checked_in }
+-- RLS: only host of the event or admin can call this.
+```
+
+**Table shapes (abbreviated — read the migration for the full schema):**
+
+```
+events: id, host_id, host_name, title, description, city (enum), venue,
+        starts_at, ends_at, capacity (nullable int), tags (text[]),
+        state (draft|pending_review|published|cancelled|taken_down),
+        featured_for (jsonb), broadcast_message, broadcast_sent_at
+
+profiles: id, full_name, email, goal, level, city, is_trusted, is_admin
+
+rsvps: id, event_id, user_id, status (going|cancelled), checked_in
+
+feedback: id, event_id, user_id, rating (thumbs_up|thumbs_down), note
+          UNIQUE(event_id, user_id)
+```
+
+**City enum values** (match exactly — the DB will reject anything else):
+`bangalore`, `pune`, `delhi`, `hyderabad`
+
+**Tag values**: `beginner`, `interview_prep`, `ai_pm`, `build`, `resume`
+
+---
+
+## 5. Auth helpers
+
+`web/lib/auth.ts` exports three helpers. Use them at the top of every
+protected Server Component and Server Action:
+
+```typescript
+// In a Server Component (page that requires login):
+import { requireAuth } from "@/lib/auth";
+const { userId, profile, supabase } = await requireAuth();
+
+// In a Server Component (admin-only page):
+import { requireAdmin } from "@/lib/auth";
+const { userId, profile, supabase } = await requireAdmin();
+
+// In a Server Action (checking host owns the event):
+import { requireOwner } from "@/lib/auth";
+const { userId, supabase } = await requireOwner(eventId);
+```
+
+`requireAuth` throws and redirects to `/auth` if unauthenticated. You don't
+need to handle the unauth case yourself.
+
+---
+
+## 6. How to write code
+
+- **Ponytail** (`/ponytail full`): smallest diff that works. No speculative
+  abstractions, no scaffolding for later, no new dependencies.
+- Read the existing file you're modifying before touching it.
+- Every non-trivial Server Action gets one test in `web/tests/`.
+- Mark intentional shortcuts: `// ponytail: X covers it, upgrade when Y`.
+- Run `npm test` before opening a PR. All tests must pass.
+- Run `npx tsc --noEmit` before opening a PR. Must be clean.
+
+---
+
+## 7. Your four slices
+
+Start with **3.1**, then **3.2**. These two unlock the rest of the app
+(without them, no events exist and nothing else can be tested). Do 3.6 and
+3.9 after.
+
+---
+
+### Slice 3.1 — Trusted-host publishing
+
 **Branch:** `slice/3.1-host-publishing`
-**Screens:** `app/(app)/organise/page.tsx` (host dashboard — my events + state
-badges), `app/(app)/organise/new/page.tsx` (create form),
-`app/(app)/organise/[id]/edit/page.tsx` (edit form).
-**What it does:** Create/edit event forms write to `events` via a Server Action.
-The `set_event_initial_state` trigger (already in the DB) sets state to
-`published` for trusted hosts and `pending_review` for untrusted — no app code
-needed for the trust logic. Host dashboard reads own events via RSC.
-**Fields:** title, description, city (enum select — Bangalore/Pune/Delhi/
-Hyderabad), venue, starts_at, ends_at, capacity (optional), tags (multiselect).
-No online/offline toggle, no meet_url — that's V2.
-**Cancel:** a host may cancel their own published event (sets state →
-`cancelled`). The cancel Server Action also needs to email all going RSVPs —
-wire the email stub (the Resend client will be in `lib/email/` by the time this
-lands; if it isn't yet, throw a TODO comment and the owner will fill it).
-**Tests:** untrusted host create → state is `pending_review`; trusted host
-create → state is `published`; edit updates fields; cancel flips state.
+
+**Before you write code, read:**
+- `web/app/(app)/organise/page.tsx` — the existing UI shell (mock data)
+- `web/app/(app)/organise/new/page.tsx` — existing create form shell
+- `web/app/(app)/organise/[id]/edit/page.tsx` — existing edit form shell
+- `web/supabase/migrations/0001_schema.sql` lines for the `events` table
+- `web/supabase/migrations/0003_rls.sql` for the `events` RLS policies
+- `web/lib/auth.ts` for `requireAuth` and `requireOwner`
+
+**What you're building:**
+
+1. **`web/app/actions/event.ts`** — new file, Server Actions:
+   - `createEvent(formData: FormData)` — insert into `events`, redirect to `/organise`
+   - `updateEvent(eventId: string, formData: FormData)` — update event fields
+   - `cancelEvent(eventId: string)` — set `state = 'cancelled'`, revalidate
+
+   Shape of createEvent:
+   ```typescript
+   "use server";
+   import { requireAuth } from "@/lib/auth";
+   import { revalidatePath } from "next/cache";
+   import { redirect } from "next/navigation";
+
+   export async function createEvent(formData: FormData) {
+     const { userId, profile, supabase } = await requireAuth();
+     if (!profile.is_trusted && !profile.is_admin) {
+       // untrusted hosts can still create — trigger sets state to pending_review
+     }
+     const { error } = await supabase.from("events").insert({
+       host_id: userId,
+       host_name: profile.full_name,
+       title: formData.get("title") as string,
+       description: formData.get("description") as string || null,
+       city: formData.get("city") as string,
+       venue: formData.get("venue") as string || null,
+       starts_at: formData.get("starts_at") as string,
+       ends_at: formData.get("ends_at") as string,
+       capacity: formData.get("capacity") ? Number(formData.get("capacity")) : null,
+       tags: (formData.getAll("tags") as string[]),
+       // DO NOT set state — the trigger handles it
+     });
+     if (error) throw new Error(error.message);
+     redirect("/organise");
+   }
+   ```
+
+2. **`web/app/(app)/organise/page.tsx`** — replace mock data with:
+   - `requireAuth()` at the top
+   - Query `events` where `host_id = userId`, ordered by `starts_at desc`
+   - Render the existing card/badge UI with real data
+
+3. **`web/app/(app)/organise/new/page.tsx`** — wire the existing form to `createEvent`:
+   - `<form action={createEvent}>` — no changes to the HTML/CSS
+   - City: `<select name="city">` with options matching the enum values exactly
+   - Tags: `<input type="checkbox" name="tags" value="beginner">` etc.
+   - Dates: `<input type="datetime-local" name="starts_at">` (store as ISO string)
+
+4. **`web/app/(app)/organise/[id]/edit/page.tsx`** — read event from DB,
+   pre-fill form, wire to `updateEvent`.
+
+5. **Cancel button** on the host dashboard: `<form action={cancelEvent.bind(null, event.id)}>`.
+   Email notification for cancel is **not required** — skip it, leave a `// TODO: email` comment.
+
+**What you must NOT build:**
+- Do not build an `is_trusted` check that blocks untrusted hosts from creating — the trigger handles it, just let the insert go through.
+- Do not build online/offline mode, meet_url field, or conflict detection.
+- Do not add `featured_for` editing — that's admin-only.
+- Do not add new npm packages.
+
+**Tests (`web/tests/host-publishing.test.ts`):**
+```typescript
+// Untrusted host creates event → state is 'pending_review'
+// Trusted host creates event → state is 'published'
+// Host can update their own event's title
+// Host cannot update another host's event (RLS blocks it)
+// Cancel sets state to 'cancelled'
+```
 
 ---
 
-### 3.2 — Admin queue + trust flip + takedown
+### Slice 3.2 — Admin queue + trust flip + takedown
+
 **Branch:** `slice/3.2-admin`
-**Screen:** `app/(admin)/admin/page.tsx`
-**What it does:**
-- Approval queue: list all `pending_review` events. Approve action → Server
-  Action sets `state = 'published'`. The `flip_host_trusted_on_publish` trigger
-  (already in DB) automatically sets the host's `is_trusted = true`. No extra
-  app code needed for the trust flip.
-- Trust toggle: list all profiles; admin can manually set `is_trusted` true/false
-  via service role (use `SUPABASE_SERVICE_ROLE_KEY` server-side — never the anon
-  key for flag changes).
-- Takedown: set `state = 'taken_down'` on any event. Taken-down events disappear
-  from the public feed (RLS already enforces this).
-**Tests:** approve a pending event → host is_trusted becomes true, event state
-is published; takedown → event not visible to anon; trust toggle persists.
+
+**Before you write code, read:**
+- `web/app/(app)/admin/page.tsx` — the existing UI shell (mock data)
+- `web/supabase/migrations/0002_functions.sql` — the `flip_host_trusted_on_publish` trigger
+- `web/lib/auth.ts` for `requireAdmin`
+
+**What you're building:**
+
+1. **`web/app/actions/admin.ts`** — new file, Server Actions:
+   ```typescript
+   "use server";
+   import { requireAdmin } from "@/lib/auth";
+   import { revalidatePath } from "next/cache";
+   import { createClient as createServiceClient } from "@supabase/supabase-js";
+
+   // Approve a pending event. The flip_host_trusted_on_publish trigger
+   // automatically sets the host's is_trusted = true — no extra code needed.
+   export async function approveEvent(eventId: string) {
+     const { supabase } = await requireAdmin();
+     await supabase.from("events").update({ state: "published" }).eq("id", eventId);
+     revalidatePath("/admin");
+   }
+
+   // Takedown any event
+   export async function takedownEvent(eventId: string) {
+     const { supabase } = await requireAdmin();
+     await supabase.from("events").update({ state: "taken_down" }).eq("id", eventId);
+     revalidatePath("/admin");
+   }
+
+   // Toggle is_trusted on a profile — must use service role key
+   export async function setTrusted(profileId: string, trusted: boolean) {
+     await requireAdmin(); // verify caller is admin
+     const service = createServiceClient(
+       process.env.NEXT_PUBLIC_SUPABASE_URL!,
+       process.env.SUPABASE_SERVICE_ROLE_KEY!,
+       { auth: { persistSession: false } }
+     );
+     await service.from("profiles").update({ is_trusted: trusted }).eq("id", profileId);
+     revalidatePath("/admin");
+   }
+   ```
+
+2. **`web/app/(app)/admin/page.tsx`** — replace mock data with:
+   - `requireAdmin()` at the top
+   - Section 1: `pending_review` events — each has an APPROVE button
+   - Section 2: all events — each has a TAKEDOWN button (if not already taken down)
+   - Section 3: all profiles — each has a TRUST TOGGLE button
+
+**What you must NOT build:**
+- Do not build email notifications for approval — skip, leave `// TODO: email` comment.
+- Do not add pagination — V2.
+- Do not add search/filter — V2.
+- Do not use the service role key for anything except `setTrusted`.
+
+**Tests (`web/tests/admin.test.ts`):**
+```typescript
+// Approve pending event → state is 'published' AND host profile.is_trusted is true
+// Takedown published event → event not visible to anon (RLS check)
+// setTrusted(id, true) → profile.is_trusted is true
+// setTrusted(id, false) → profile.is_trusted is false
+// Non-admin cannot call approveEvent (requireAdmin throws)
+```
 
 ---
 
-### ~~3.4 — RSVP + capacity + ticket + calendar~~ ✅ DONE (on main)
-**Branch:** `slice/3.4-rsvp-ticket`
-**Screens:** RSVP button wired on `app/(app)/e/[id]/page.tsx`; ticket stub at
-`app/(app)/ticket/[rsvpId]/page.tsx`.
-**What it does:**
-- RSVP: call `rsvp_to_event(p_event_id)` RPC (already in DB — atomic, cap-
-  checked, FOR UPDATE). On success, redirect to `/ticket/[rsvpId]`.
-- Cancel RSVP: Server Action sets `rsvps.status = 'cancelled'`.
-- `FULL` badge: if `capacity` is set and going-RSVP count ≥ capacity, show FULL
-  and disable the RSVP button. Read the count server-side.
-- Ticket stub (`app/(app)/ticket/[rsvpId]/page.tsx`): screenshot-worthy
-  confirmation — event title, host, date/venue, "you're in" stamp.
-- Add-to-calendar: ICS download via `app/api/ics/[eventId]/route.ts`; Google
-  Calendar link built in `lib/calendar.ts`.
-- **No QR code** — V2.
-**Tests:** RSVP succeeds on open event; at-cap event rejects; double-RSVP is
-idempotent; ICS response has correct content-type; ticket page renders for a
-valid rsvpId.
+### Slice 3.6 — Host run-view + one broadcast
 
----
-
-### 3.6 — Host run-view + one broadcast
 **Branch:** `slice/3.6-run-view`
-**Screen:** `app/(app)/organise/[id]/run/page.tsx`
-**What it does:**
-- Attendee list: call `event_attendees(p_event_id)` RPC (already in DB — returns
-  user_id, full_name, checked_in for going RSVPs, host/admin only).
-- Check-in toggle: Server Action updates `rsvps.checked_in = true/false` for a
-  given rsvp row. Host or admin only (RLS already enforces).
-- Broadcast: a single text area + send button. Server Action calls Resend to
-  email all going RSVPs with `rsvps.status = 'going'`, then sets
-  `events.broadcast_message` and `events.broadcast_sent_at`. **Block a second
-  send** — if `broadcast_sent_at` is not null, the button is disabled and shows
-  "Already sent [time]". One broadcast per event, ever.
-**Tests:** check-in toggle persists; second broadcast attempt is rejected (server
-action returns error if broadcast_sent_at is set); non-host cannot reach the
-run-view (middleware/RLS).
+
+**Before you write code, read:**
+- `web/app/(app)/organise/[id]/run/page.tsx` — the existing UI shell (mock data)
+- `web/supabase/migrations/0002_functions.sql` — the `event_attendees` function
+- `web/lib/auth.ts` for `requireOwner`
+- `web/supabase/migrations/0001_schema.sql` — `broadcast_message`, `broadcast_sent_at` columns on events
+
+**What you're building:**
+
+1. **`web/app/(app)/organise/[id]/run/page.tsx`** — replace mock data:
+   - `requireOwner(eventId)` at top (throws 403 if caller isn't host)
+   - Call `supabase.rpc("event_attendees", { p_event_id: eventId })` to get the list
+   - Display: name, checked_in status, check-in button per row
+   - Broadcast section: textarea + send button (disabled if `broadcast_sent_at` is not null)
+
+2. **`web/app/actions/run.ts`** — new file:
+   ```typescript
+   "use server";
+   import { requireOwner } from "@/lib/auth";
+   import { revalidatePath } from "next/cache";
+
+   export async function checkIn(rsvpId: string, eventId: string, value: boolean) {
+     const { supabase } = await requireOwner(eventId);
+     await supabase.from("rsvps").update({ checked_in: value }).eq("id", rsvpId);
+     revalidatePath(`/organise/${eventId}/run`);
+   }
+
+   export async function sendBroadcast(eventId: string, message: string) {
+     const { supabase } = await requireOwner(eventId);
+     // Block second send
+     const { data: event } = await supabase
+       .from("events").select("broadcast_sent_at").eq("id", eventId).single();
+     if (event?.broadcast_sent_at) throw new Error("Already sent");
+
+     // TODO: send email via Resend to all going RSVPs
+     // For now, just persist the message
+     await supabase.from("events").update({
+       broadcast_message: message,
+       broadcast_sent_at: new Date().toISOString(),
+     }).eq("id", eventId);
+     revalidatePath(`/organise/${eventId}/run`);
+   }
+   ```
+
+**What you must NOT build:**
+- Do not implement the actual Resend email call — leave the `// TODO: send email` comment.
+- Do not add real-time updates / subscriptions — V2.
+- Do not add pagination of the attendee list — V2.
+
+**Tests (`web/tests/run-view.test.ts`):**
+```typescript
+// checkIn sets rsvps.checked_in = true
+// checkIn sets rsvps.checked_in = false (toggle off)
+// sendBroadcast sets broadcast_message and broadcast_sent_at on the event
+// Second sendBroadcast throws "Already sent"
+// Non-host cannot call checkIn (requireOwner throws)
+```
 
 ---
 
-### 3.9 — Post-session feedback
+### Slice 3.9 — Post-session feedback
+
 **Branch:** `slice/3.9-feedback`
-**Screens:** feedback form surfaced on `app/(app)/e/[id]/page.tsx` after the
-event ends (`ends_at < now()`); host read-view at
-`app/(app)/organise/[id]/feedback/page.tsx`.
-**What it does:**
-- Feedback form (attendees only, after event ends): thumbs up / thumbs down
-  toggle + one optional text field. Server Action inserts into `feedback` table.
-  One row per (event, user) — the DB unique constraint enforces it.
-- Host read-view: list all feedback rows for their event (thumbs up count,
-  thumbs down count, notes). Visible to host + admin only (RLS already enforces).
-- **No public ratings** — feedback is never shown to attendees or on the public
-  event page.
-**Tests:** attendee can submit feedback after event ends; second submission
-returns the existing row (upsert or graceful conflict); non-attendee cannot
-insert; non-host cannot read other event's feedback (covered by RLS test, but
-assert via the route too).
 
-## 7. Slice order recommendation
+**Before you write code, read:**
+- `web/app/(app)/e/[id]/page.tsx` — you'll add a feedback form here (after event ends)
+- `web/app/(app)/organise/[id]/` — you'll add a `feedback/page.tsx` here
+- `web/supabase/migrations/0001_schema.sql` — the `feedback` table + unique constraint
+- `web/supabase/migrations/0003_rls.sql` — feedback RLS policies
 
-You can start all five in parallel branches, but this order minimises merge pain:
-3.1 → 3.2 → 3.4 → 3.6 → 3.9. (3.6 needs events to exist; 3.9 needs RSVPs.)
+**What you're building:**
 
-## 8. Workflow (PRs + review)
+1. **`web/app/actions/feedback.ts`** — new file:
+   ```typescript
+   "use server";
+   import { requireAuth } from "@/lib/auth";
+   import { revalidatePath } from "next/cache";
 
-1. Branch per slice: `git checkout -b slice/3.4-rsvp-ticket`.
-2. Build TDD, ponytail-lazy. Keep the **RLS matrix test (plan Task 2.3) green** —
-   it's the shared regression gate every PR must pass.
-3. **Don't regenerate `web/lib/supabase/types.ts` on a feature branch.** It's a
-   shared generated file, frozen after Phase 2. If your slice needs a schema
-   change, change the migration + regenerate types in that PR and tell the other
-   dev to rebase.
-4. Open a PR. We review before merge to `main`.
-5. Keep PRs to one slice — easier to review, smaller blast radius.
+   export async function submitFeedback(eventId: string, rating: "thumbs_up" | "thumbs_down", note: string) {
+     const { userId, supabase } = await requireAuth();
+     await supabase.from("feedback").upsert(
+       { event_id: eventId, user_id: userId, rating, note: note || null },
+       { onConflict: "event_id,user_id" }
+     );
+     revalidatePath(`/e/${eventId}`);
+   }
+   ```
 
-## 9. Questions to raise (don't guess)
+2. **`web/app/(app)/e/[id]/page.tsx`** — add feedback section after the event ends:
+   - Only show if `isPast && isGoing` (attendees only, after event ends)
+   - Check if user already submitted: `select id, rating from feedback where event_id=X and user_id=Y`
+   - If already submitted: show their rating (read-only)
+   - If not: show thumbs up / thumbs down form + optional note textarea
 
-The plan has three open questions that need a team call before they're built:
-member `goal`/`level` enum values, online-vs-offline handling, and the
-open-signup auth confirmation. If a slice depends on one, flag it, don't assume.
+3. **`web/app/(app)/organise/[id]/feedback/page.tsx`** — host read-view:
+   - `requireOwner(eventId)` at top
+   - Query all feedback for the event
+   - Show: thumbs up count, thumbs down count, list of notes
+   - Add link to this page from `organise/[id]/run/page.tsx`
 
-Welcome aboard.
+**What you must NOT build:**
+- Do not show feedback on the public event page — host + admin only.
+- Do not show individual names next to feedback — anonymous to host.
+- Do not add a feedback summary to the feed cards — V2.
+
+**Tests (`web/tests/feedback.test.ts`):**
+```typescript
+// Attendee can submit feedback after event ends
+// Second submission upserts (doesn't throw)
+// Non-attendee cannot insert (RLS blocks)
+// Non-host cannot read feedback for another host's event (RLS blocks)
+```
+
+---
+
+## 8. Workflow
+
+```bash
+# 1. Pull latest main before starting each slice
+git checkout main && git pull origin main
+
+# 2. Branch
+git checkout -b slice/3.1-host-publishing
+
+# 3. Read the files listed in "Before you write code" above — all of them
+
+# 4. Write the failing test first, then implement
+
+# 5. Verify before PR
+npm test          # all tests must pass (including the 37 existing RLS tests)
+npx tsc --noEmit  # must be clean
+
+# 6. Open PR — one slice per PR
+```
+
+Keep PRs to one slice. Don't combine. Don't add "bonus" improvements to files
+outside your slice — raise them as a comment on the PR instead.
+
+---
+
+## 9. Slice order
+
+**3.1 → 3.2 first.** They're the critical path: without them, no events exist
+and 3.6/3.9 can't be tested. Do 3.6 and 3.9 after both are merged.
+
+---
+
+## 10. If something is unclear
+
+Don't guess. Don't build a workaround. Leave a `// TODO: ask Krishna` comment
+and move to the next thing. Raise questions in the PR description.
+
+The two most dangerous things Claude can do on this repo:
+1. Build infrastructure or abstractions that weren't asked for
+2. Modify files outside the slice's listed scope
+
+When in doubt: do less, not more.
