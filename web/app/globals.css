@@ -15,32 +15,32 @@
   --font-sans: var(--font-ibm-plex-sans), "IBM Plex Sans", sans-serif;
   --font-mono: var(--font-ibm-plex-mono), "IBM Plex Mono", monospace;
 
-  /* --- Font sizes (generates text-display-xl etc.) --- */
-  --font-size-display-xl: 120px;
-  --font-size-display-xl--line-height: 110px;
-  --font-size-display-xl--letter-spacing: -0.04em;
+  /* --- Font sizes — Tailwind v4 uses --text-* not --font-size-* --- */
+  --text-display-xl: 120px;
+  --text-display-xl--line-height: 110px;
+  --text-display-xl--letter-spacing: -0.04em;
 
-  --font-size-display-lg: 80px;
-  --font-size-display-lg--line-height: 84px;
-  --font-size-display-lg--letter-spacing: -0.02em;
+  --text-display-lg: 80px;
+  --text-display-lg--line-height: 84px;
+  --text-display-lg--letter-spacing: -0.02em;
 
-  --font-size-headline-lg: 48px;
-  --font-size-headline-lg--line-height: 52px;
+  --text-headline-lg: 48px;
+  --text-headline-lg--line-height: 52px;
 
-  --font-size-headline-md: 32px;
-  --font-size-headline-md--line-height: 36px;
+  --text-headline-md: 32px;
+  --text-headline-md--line-height: 36px;
 
-  --font-size-body-lg: 20px;
-  --font-size-body-lg--line-height: 30px;
+  --text-body-lg: 20px;
+  --text-body-lg--line-height: 30px;
 
-  --font-size-body-md: 16px;
-  --font-size-body-md--line-height: 24px;
+  --text-body-md: 16px;
+  --text-body-md--line-height: 24px;
 
-  --font-size-label-mono: 14px;
-  --font-size-label-mono--line-height: 20px;
+  --text-label-mono: 14px;
+  --text-label-mono--line-height: 20px;
 
-  --font-size-label-data: 12px;
-  --font-size-label-data--line-height: 16px;
+  --text-label-data: 12px;
+  --text-label-data--line-height: 16px;
 
   /* --- Brand colors --- */
   --color-surface: #f9f9f9;
@@ -261,6 +261,9 @@
 
 @layer components {
   .input-base {
-    @apply w-full border-2 border-on-background bg-background px-4 py-3 font-mono text-label-mono uppercase text-foreground placeholder:text-on-surface-variant outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-shadow;
+    @apply w-full border-2 border-on-background bg-background px-4 py-3 font-mono uppercase text-foreground placeholder:text-on-surface-variant outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-shadow;
+    /* ponytail: @apply can't resolve @theme-generated utilities at parse time in Tailwind v4 */
+    font-size: var(--text-label-mono);
+    line-height: var(--text-label-mono--line-height);
   }
 }
