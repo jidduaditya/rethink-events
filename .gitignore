@@ -1,0 +1,16 @@
+# dependencies / build (web app has its own .gitignore too)
+node_modules/
+.next/
+out/
+build/
+
+# env
+.env
+.env*.local
+
+# os / editor
+.DS_Store
+*.swp
+
+# raw source docs (superseded by the .md spec; large binaries)
+*.docx
