@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+export type { SupabaseClient };
 import { config } from "dotenv";
 
 config({ path: ".env.local" });
