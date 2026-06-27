@@ -4,9 +4,7 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
-import { MOCK_EVENTS, MOCK_MY_RSVPS } from "@/lib/mock";
-
-// ponytail: Phase 1 — mock data only. Real DB + auth swap lands in slice 3.3.
+import { createClient } from "@/lib/supabase/server";
 
 const TAG_LABELS: Record<string, string> = {
   beginner: "BEGINNER",
@@ -36,10 +34,44 @@ function formatTime(iso: string) {
   });
 }
 
+async function getEvent(id: string) {
+  const supabase = await createClient();
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("id, title, description, city, venue, starts_at, ends_at, capacity, tags, state, host_name, host_id")
+    .eq("id", id)
+    .single();
+
+  if (!event) return null;
+
+  const { count: goingCount } = await supabase
+    .from("rsvps")
+    .select("*", { count: "exact", head: true })
+    .eq("event_id", id)
+    .eq("status", "going");
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let myRsvp: { id: string; status: string } | null = null;
+  if (user) {
+    const { data } = await supabase
+      .from("rsvps")
+      .select("id, status")
+      .eq("event_id", id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    myRsvp = data;
+  }
+
+  return { event, goingCount: goingCount ?? 0, myRsvp };
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const event = MOCK_EVENTS.find((e) => e.id === id);
-  if (!event) return { title: "Event not found" };
+  const result = await getEvent(id);
+  if (!result) return { title: "Event not found" };
+  const { event } = result;
   return {
     title: `${event.title} — RETHINK EVENTS`,
     description: event.description ?? `A ReThink event in ${event.city}.`,
@@ -54,15 +86,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const event = MOCK_EVENTS.find((e) => e.id === id);
-  if (!event) notFound();
+  const result = await getEvent(id);
+  if (!result) notFound();
 
-  const isFull = event.capacity != null && (event.going_count ?? 0) >= event.capacity;
-  const isGoing = MOCK_MY_RSVPS.some((r) => r.event_id === id && r.status === "going");
-  const isPast = new Date(event.ends_at) < new Date("2026-06-27T10:00:00Z");
-  const spotsLeft = event.capacity != null ? event.capacity - (event.going_count ?? 0) : null;
+  const { event, goingCount, myRsvp } = result;
 
-  // Google Calendar link
+  const isFull = event.capacity != null && goingCount >= event.capacity;
+  const isGoing = myRsvp?.status === "going";
+  const isPast = new Date(event.ends_at) < new Date();
+  const spotsLeft = event.capacity != null ? event.capacity - goingCount : null;
+
   const gcalUrl = new URL("https://calendar.google.com/calendar/render");
   gcalUrl.searchParams.set("action", "TEMPLATE");
   gcalUrl.searchParams.set("text", event.title);
@@ -75,7 +108,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   return (
     <AppShell>
       <div className="mx-auto max-w-4xl px-grid-margin py-stack-xl">
-        {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
         <Link
           href="/"
           className="font-mono text-label-mono uppercase text-on-surface-variant hover:text-primary transition-colors"
@@ -83,9 +115,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           ← BACK TO EVENTS
         </Link>
 
-        {/* ── State badges ─────────────────────────────────────────────────── */}
         <div className="mt-stack-lg flex flex-wrap items-center gap-2">
-          {event.tags.map((tag) => (
+          {event.tags.map((tag: string) => (
             <span
               key={tag}
               className="border-2 border-on-background bg-secondary-container px-3 py-1 font-mono text-label-mono font-semibold uppercase text-on-secondary-container"
@@ -105,12 +136,10 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           )}
         </div>
 
-        {/* ── Title ────────────────────────────────────────────────────────── */}
         <h1 className="mt-stack-lg font-serif text-display-lg font-black uppercase leading-none tracking-tight">
           {event.title}
         </h1>
 
-        {/* ── Meta grid ────────────────────────────────────────────────────── */}
         <div className="mt-stack-xl grid gap-6 border-y-4 border-on-background py-stack-lg md:grid-cols-3">
           <MetaBlock label="WHEN">
             <p>{formatFull(event.starts_at)}</p>
@@ -127,10 +156,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 {isFull ? "Event full" : `${spotsLeft} of ${event.capacity} spots left`}
               </p>
             )}
+            {event.capacity == null && goingCount > 0 && (
+              <p className="text-on-surface-variant">{goingCount} going</p>
+            )}
           </MetaBlock>
         </div>
 
-        {/* ── Description ──────────────────────────────────────────────────── */}
         {event.description && (
           <div className="mt-stack-xl">
             <p className="whitespace-pre-wrap font-serif text-body-lg leading-relaxed">
@@ -139,7 +170,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           </div>
         )}
 
-        {/* ── CTA ──────────────────────────────────────────────────────────── */}
+        {/* CTA — RSVP action wired in slice 3.4 */}
         <div className="mt-stack-xl flex flex-col gap-4 sm:flex-row sm:items-center">
           {isPast ? (
             <p className="font-mono text-label-mono uppercase text-on-surface-variant">
@@ -159,7 +190,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 + ADD TO CALENDAR
               </Link>
               <Link
-                href={`/ticket/${MOCK_MY_RSVPS.find((r) => r.event_id === id)?.id}`}
+                href={`/ticket/${myRsvp!.id}`}
                 className="font-mono text-label-mono uppercase underline underline-offset-4 hover:text-primary transition-colors"
               >
                 VIEW TICKET →
@@ -170,13 +201,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               {BRAND.errors.full}
             </p>
           ) : (
-            <Button size="lg">
-              {BRAND.rsvp.going}
-            </Button>
+            // ponytail: RSVP action stub — slice 3.4 wires the Server Action
+            <Button size="lg">{BRAND.rsvp.going}</Button>
           )}
         </div>
 
-        {/* ── Share strip ──────────────────────────────────────────────────── */}
         <div className="mt-stack-xl border-t-4 border-on-background pt-stack-lg">
           <p className="font-mono text-label-data uppercase text-on-surface-variant">
             Share this event
