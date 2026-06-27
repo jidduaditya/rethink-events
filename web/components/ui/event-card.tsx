@@ -1,6 +1,19 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { Event } from "@/lib/mock";
+
+export interface FeedEvent {
+  id: string;
+  title: string;
+  city: string;
+  venue: string | null;
+  starts_at: string;
+  ends_at: string;
+  capacity: number | null;
+  tags: string[];
+  host_name: string | null;
+  featured_for?: Record<string, string> | null;
+  going_count?: number;
+}
 
 const TAG_LABELS: Record<string, string> = {
   beginner: "BEGINNER",
@@ -30,7 +43,7 @@ function formatDate(iso: string) {
 }
 
 interface EventCardProps {
-  event: Event;
+  event: FeedEvent;
   going?: boolean;
   className?: string;
 }
