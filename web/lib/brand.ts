@@ -25,6 +25,7 @@ export const BRAND = {
   empty: {
     feed: "Nothing on tonight. Build one.",
     myEvents: "You haven't signed up for anything yet.",
+    hostEvents: "No events created yet.",
   },
   errors: {
     generic: "Something broke. Reload.",

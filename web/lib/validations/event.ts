@@ -9,8 +9,8 @@ export const eventSchema = z
     description: z.string().optional(),
     city: z.enum(CITIES),
     venue: z.string().optional(),
-    starts_at: z.string().datetime(),
-    ends_at: z.string().datetime(),
+    starts_at: z.string().datetime({ offset: true }),
+    ends_at: z.string().datetime({ offset: true }),
     capacity: z.number().int().positive().nullable().optional(),
     tags: z.array(z.enum(TAGS)).default([]),
   })

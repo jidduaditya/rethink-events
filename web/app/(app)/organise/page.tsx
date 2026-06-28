@@ -1,103 +1,87 @@
 import Link from "next/link";
-import { AppShell } from "@/components/layout/app-shell";
-import { Button } from "@/components/ui/button";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { BRAND } from "@/lib/brand";
-import { MOCK_EVENTS, MOCK_ME } from "@/lib/mock";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cancelEvent } from "./actions";
+import { StateBadge } from "./_components/state-badge";
 
-// ponytail: Phase 1 — visual scaffold. Real host dashboard wired in slice 3.1.
+export default async function OrganisePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-const myEvents = MOCK_EVENTS; // In Phase 3.1 filter by auth user's host_id
+  const { data: events } = await supabase
+    .from("events")
+    .select("id, title, city, starts_at, state")
+    .eq("host_id", user.id)
+    .order("starts_at", { ascending: false });
 
-const STATE_LABEL: Record<string, string> = {
-  draft: "DRAFT",
-  pending_review: "IN REVIEW",
-  published: "LIVE",
-  cancelled: "CANCELLED",
-  taken_down: "TAKEN DOWN",
-};
-
-const STATE_STYLE: Record<string, string> = {
-  draft: "border-outline text-on-surface-variant",
-  pending_review: "border-primary bg-primary text-on-primary",
-  published: "border-secondary-container bg-secondary-container text-on-secondary-container",
-  cancelled: "border-error text-error",
-  taken_down: "border-on-surface-variant text-on-surface-variant",
-};
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-IN", {
-    day: "numeric", month: "short", year: "numeric",
-  }).toUpperCase();
-}
-
-export default function OrganisePage() {
   return (
-    <AppShell>
-      <div className="px-grid-margin py-stack-xl">
-        {/* header */}
-        <div className="flex items-center justify-between border-b-4 border-on-background pb-stack-lg">
-          <div>
-            <h1 className="font-serif text-headline-lg font-black uppercase">ORGANISE</h1>
-            <p className="mt-1 font-mono text-label-mono uppercase text-on-surface-variant">
-              {MOCK_ME.full_name} · {myEvents.length} events
-            </p>
-          </div>
-          <Link href="/organise/new">
-            <Button>{BRAND.create.publish.replace("PUBLISH ", "NEW ")}</Button>
-          </Link>
-        </div>
+    <div className="mx-auto max-w-3xl px-grid-margin py-stack-lg">
+      <div className="mb-stack-lg flex items-center justify-between">
+        <h1 className="font-serif text-headline-md font-black uppercase">
+          MY EVENTS
+        </h1>
+        <Link href="/organise/new" className={buttonVariants({ size: "sm" })}>
+          + NEW EVENT
+        </Link>
+      </div>
 
-        {/* event list */}
-        {myEvents.length === 0 ? (
-          <div className="mt-stack-xl text-center">
-            <p className="font-serif text-headline-md text-on-surface-variant">
-              No events yet.
-            </p>
-            <Link href="/organise/new" className="mt-stack-lg inline-block">
-              <Button size="lg">HOST YOUR FIRST EVENT</Button>
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-stack-lg divide-y-2 divide-on-background border-2 border-on-background">
-            {myEvents.map((event) => (
-              <div key={event.id} className="flex items-center gap-4 p-5 hover:bg-surface-container-low transition-colors">
-                {/* state pill */}
-                <span
-                  className={`shrink-0 border-2 px-3 py-1 font-mono text-label-data font-semibold uppercase ${STATE_STYLE[event.state]}`}
-                >
-                  {STATE_LABEL[event.state] ?? event.state}
-                </span>
-
-                {/* title + meta */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-serif text-headline-md font-black uppercase truncate">
+      {!events?.length ? (
+        <p className="font-mono text-label-mono text-on-surface-variant">
+          {BRAND.empty.hostEvents}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-4">
+          {events.map((event) => {
+            const boundCancel = cancelEvent.bind(null, event.id);
+            const editable =
+              event.state !== "cancelled" && event.state !== "taken_down";
+            return (
+              <li
+                key={event.id}
+                className="border-standard flex items-start justify-between gap-4 bg-surface-container-low p-4"
+              >
+                <div className="flex flex-col gap-1.5">
+                  <p className="font-sans text-body-md font-semibold">
                     {event.title}
                   </p>
-                  <p className="mt-0.5 font-mono text-label-data uppercase text-on-surface-variant">
-                    {formatDate(event.starts_at)} · {event.city.toUpperCase()}
-                    {event.capacity != null && ` · ${event.going_count ?? 0}/${event.capacity} GOING`}
+                  <p className="font-mono text-label-data uppercase text-on-surface-variant">
+                    {event.city.toUpperCase()} &bull;{" "}
+                    {new Date(event.starts_at).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
                   </p>
+                  <StateBadge state={event.state} />
                 </div>
 
-                {/* actions */}
-                <div className="flex shrink-0 gap-2">
-                  {event.state === "published" && (
-                    <Link href={`/organise/${event.id}/run`}>
-                      <Button size="sm" variant="secondary">RUN</Button>
+                <div className="flex shrink-0 items-center gap-2">
+                  {editable && (
+                    <Link
+                      href={`/organise/${event.id}/edit`}
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      EDIT
                     </Link>
                   )}
-                  <Link href={`/organise/${event.id}/edit`}>
-                    <Button size="sm" variant="outline">EDIT</Button>
-                  </Link>
-                  <Link href={`/e/${event.id}`}>
-                    <Button size="sm" variant="ghost">VIEW ↗</Button>
-                  </Link>
+                  {event.state === "published" && (
+                    <form action={boundCancel}>
+                      <Button type="submit" variant="destructive" size="sm">
+                        CANCEL
+                      </Button>
+                    </form>
+                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </AppShell>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
