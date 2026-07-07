@@ -15,7 +15,10 @@ evolution of this repo — no rebuild, no new project.
 
 Three workstreams, strictly in this order:
 
-1. **Stabilize** — review and merge PRs #8, #9, #10 so `main` is complete V1.
+1. **Stabilize** — review and merge the open PRs so `main` is complete V1.
+   Exact sequence (PR #10 targets #9's branch, not main): merge #8 → rebase
+   and merge #9 → retarget #10 to main, rebase, merge #10. Full test suite
+   green after each merge before the next.
 2. **Whitelist-gated hosting** — admin-managed email list decides who can host.
    Whitelisted = trusted = instant publish.
 3. **Schedule-first home** — signed-in members land on hosting/attending
@@ -32,6 +35,8 @@ Three workstreams, strictly in this order:
 | Home surface | My schedule + upcoming | Hosting section, attending section, then all upcoming events; feed pieces reused, demoted |
 | Whitelist UX | Add-email form + list on admin page | Simplest thing that works at community scale; pre-approval before signup supported |
 | Enforcement | DB-enforced (RLS), not app-layer only | The database is the bouncer, the UI is the sign on the door. One new access rule must live in the same RLS matrix as every other rule |
+| Source of truth | Whitelist is the ONLY write path for `is_trusted` | Two write paths (list + slice 3.2 manual toggle) would drift; the design names the loser: the manual toggle goes |
+| Existing trusted profiles | Reset all `is_trusted` to false in 0006 | Community hasn't launched; "the list is exactly who can host" holds from day one. Seed/test trust flips are discarded, not grandfathered |
 
 Deferred (unchanged from V1 deferral table, plus this phase's cuts): 24h
 reminder email, production launch checklist (domain, SPF/DKIM, seed whitelist),
@@ -44,17 +49,28 @@ New migration `0006_host_whitelist.sql`:
 - Table `host_whitelist`: `email text primary key` (stored lowercased),
   `added_by uuid references profiles`, `created_at timestamptz default now()`.
 - RLS: only admins may select/insert/delete. No anon or member access.
-- **Grant path (member exists):** admin adds email → server action (service
-  role) flips `profiles.is_trusted = true` for the matching profile.
+- **Grant/revoke are DB triggers on `host_whitelist`, not app code.** Insert
+  → flip the matching profile's `is_trusted = true`. Delete → flip it back
+  false. One transaction; list and flag cannot drift even if an action
+  half-fails. The server actions only insert/delete whitelist rows.
 - **Grant path (member not yet signed up):** trigger on `profiles` insert
   checks `host_whitelist` for the new profile's email (lowercased) and sets
   `is_trusted = true` at signup. Pre-approval works.
-- **Revoke path:** admin removes email → server action flips
-  `profiles.is_trusted = false`. The member keeps attending; they lose the
-  create flow. Their existing published events are untouched.
+- **Revoke semantics:** the member keeps attending; they lose the create
+  flow. Their existing published events are untouched — they retain edit /
+  cancel / run / broadcast on them via ownership RLS (intended).
+- **Whitelist is the only write path for `is_trusted`.** The slice 3.2
+  manual trust toggle on the admin page is REMOVED (its server action too).
+  The `protect_profile_flags` self-elevation guard stays; the new whitelist
+  triggers run security-definer so they pass it (admin or service contexts).
+- **Backfill/reset in 0006:** set `is_trusted = false` on all profiles as
+  part of the migration. The list starts empty and is the complete truth;
+  admins add real hosts through it. No grandfathering of seed/test flips.
 - **Tighten events INSERT policy:** only profiles with `is_trusted = true`
   (or admins) may insert rows into `events`. Previously any member could
   create (into `pending_review`); that path closes.
+- Out of scope, declared: if a user changes their auth email later, whitelist
+  membership is not re-evaluated (matched at signup / at whitelist-add only).
 
 No new "can host" concept: the existing `is_trusted` flag already means
 "publishes instantly" via the live `set_event_initial_state` trigger.
@@ -89,21 +105,27 @@ profile `is_trusted`. Non-trusted members never see hosting UI. No
 
 ## 5. Admin additions
 
-One new section on the existing admin page (`app/(admin)/admin/page.tsx`):
+On the existing admin page (`app/(admin)/admin/page.tsx`):
 
 - Add-email form (Server Action, service role, lowercases input).
 - List of whitelist entries: email, added-by, added-at, remove button.
 - Remove confirms before revoking (destructive action rule).
+- The slice 3.2 manual `is_trusted` toggle is removed from this page — the
+  whitelist section replaces it as the single way hosting rights change.
+  The approval queue section stays (dormant; renders empty).
 
 ## 6. Testing
 
 Same TDD pattern as slices 3.6/3.9 (mocked `createClient`, failing test
 first). Required coverage:
 
-- Whitelist add flips an existing member's `is_trusted` to true.
+- Whitelist insert trigger flips an existing member's `is_trusted` to true;
+  delete trigger flips it back (both are DB-level tests).
 - Pre-approved email → profile created at signup is trusted (trigger test,
   lives with the RLS/integration suite).
-- Removal revokes `is_trusted`.
+- Migration 0006 resets pre-existing `is_trusted` flags to false.
+- The removed trust-toggle action no longer exists (its old tests deleted,
+  not skipped).
 - Non-trusted authenticated user INSERT on `events` is rejected by RLS —
   extends the existing RLS matrix test file.
 - Admin-only access to `host_whitelist` (anon and member reads fail).
