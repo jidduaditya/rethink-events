@@ -15,10 +15,11 @@ evolution of this repo — no rebuild, no new project.
 
 Three workstreams, strictly in this order:
 
-1. **Stabilize** — review and merge the open PRs so `main` is complete V1.
-   Exact sequence (PR #10 targets #9's branch, not main): merge #8 → rebase
-   and merge #9 → retarget #10 to main, rebase, merge #10. Full test suite
-   green after each merge before the next.
+1. **Stabilize** — land the open PRs' content so `main` is complete V1.
+   Amended 2026-07-07 (approved): the branches were cut from a pre-Phase-1
+   main and conflict wholesale with merged work, so their UNIQUE content is
+   PORTED onto a fresh branch off current main (one stabilize PR), and
+   #8/#9/#10 are closed as superseded. Test suite green before it merges.
 2. **Whitelist-gated hosting** — admin-managed email list decides who can host.
    Whitelisted = trusted = instant publish.
 3. **Schedule-first home** — signed-in members land on hosting/attending

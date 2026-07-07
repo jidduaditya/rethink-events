@@ -1474,9 +1474,12 @@ Test suite: [paste summary]. Manual smoke pass: [confirm 6/6].
 
 Do NOT merge this PR — Aditya reviews it.
 
-- [ ] **Step 4: Record**
+- [ ] **Step 4: Record (mandatory — the knowledge files exist)**
 
-Append a dated entry to the session journal if `knowledge/session-journal.md` exists; otherwise note completion in the PR. State: what shipped, the two retired write paths (setTrust action, events_flip_trust trigger), and that migration 0006 is applied to the hosted project.
+1. Append a dated entry to `knowledge/session-journal.md` (newest at top, format is at the file's header): Built / Broke / Decided / Overrides used / Next.
+2. If anything failed or was reverted during execution, add it to `knowledge/past-mistakes.md` with root cause and class of mistake.
+3. Update the "Status and foundation state" section of the project `CLAUDE.md`: migrations 0001-0006 verified applied (or not), e2e smoke walked (6/6 or which failed), Phase 4 PR open awaiting review.
+4. State in the journal entry: the two retired write paths (setTrust action, events_flip_trust trigger) and that migration 0006 is applied to the hosted project.
 
 ---
 
