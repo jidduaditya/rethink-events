@@ -216,6 +216,17 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           )}
         </div>
 
+        {isPast && myRsvp && (
+          <div className="mt-stack-xl border-t-4 border-on-background pt-stack-lg">
+            <Link
+              href={`/events/${event.id}/feedback`}
+              className="font-mono text-label-mono uppercase underline underline-offset-4 hover:text-primary transition-colors"
+            >
+              {BRAND.feedback.heading} →
+            </Link>
+          </div>
+        )}
+
         <div className="mt-stack-xl border-t-4 border-on-background pt-stack-lg">
           <p className="font-mono text-label-data uppercase text-on-surface-variant">
             Share this event
