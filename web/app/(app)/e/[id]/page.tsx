@@ -232,6 +232,12 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             Share this event
           </p>
           <div className="mt-3 flex gap-4">
+            <a
+              href={`/api/ics/${event.id}`}
+              className="border-2 border-on-background px-4 py-2 font-mono text-label-data font-semibold uppercase transition-colors hover:bg-secondary-container hard-shadow hard-shadow-hover"
+            >
+              ADD TO CALENDAR
+            </a>
             <ShareButton label="COPY LINK" />
             <ShareButton label="TWEET" />
             <ShareButton label="WHATSAPP" />
