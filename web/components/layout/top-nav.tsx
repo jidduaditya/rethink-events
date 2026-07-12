@@ -12,8 +12,9 @@ const navLinks = [
   { href: "/me", label: "MY EVENTS" },
 ];
 
-export function TopNav() {
+export function TopNav({ canHost = false }: { canHost?: boolean }) {
   const pathname = usePathname();
+  const links = navLinks.filter((l) => l.href !== "/organise" || canHost);
 
   return (
     <nav className="sticky top-0 z-50 flex h-20 items-center justify-between border-b-4 border-on-background bg-background px-grid-margin">
@@ -25,7 +26,7 @@ export function TopNav() {
       </Link>
 
       <div className="hidden items-center gap-6 md:flex">
-        {navLinks.map((link) => {
+        {links.map((link) => {
           const isActive =
             link.href === "/"
               ? pathname === "/"

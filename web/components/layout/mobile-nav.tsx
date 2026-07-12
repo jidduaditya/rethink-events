@@ -11,12 +11,13 @@ const navItems = [
   { href: "/me", label: "MY EVENTS", icon: User },
 ];
 
-export function MobileNav() {
+export function MobileNav({ canHost = false }: { canHost?: boolean }) {
   const pathname = usePathname();
+  const items = navItems.filter((i) => i.href !== "/organise" || canHost);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex border-t-4 border-on-background bg-background md:hidden">
-      {navItems.map((item) => {
+      {items.map((item) => {
         const isActive =
           item.href === "/"
             ? pathname === "/"
