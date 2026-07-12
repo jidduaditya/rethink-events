@@ -27,21 +27,27 @@ Deviations from AI Projects defaults, all deliberate:
 ## Status and foundation state
 
 Read by the foundation gate at BOOT. Keep current via /session-end.
-Last updated: 2026-07-07.
+Last updated: 2026-07-12.
 
-- Current layer: V1 code-complete. main has Phases 0-2 + slices 3.1-3.5;
-  slices 3.4-ICS/3.6/3.9 sit in open PRs #8/#9/#10 (superseded-port strategy
-  approved; see plan Task 1-3). Phase 4 spec + plan written, build NOT started.
-- Unapplied migrations: UNVERIFIED. Migrations 0001-0005 are assumed applied
-  to the hosted Supabase project but this has never been confirmed from this
-  machine. Plan Task 0 verifies; nothing builds before it passes. 0006 exists
-  only in the plan, not yet written or applied.
-- Un-run e2e flows: full V1 browser flow (signup -> RSVP -> ticket -> run ->
-  feedback) has never been walked end-to-end. Plan Task 10 Step 2 is that walk.
+- Repo home: MOVED to github.com/jidduaditya/rethink-events (origin). OrangeAKA
+  remote dropped — zero teammate dependency. Branches: main = V1;
+  phase-4/community-app = Phase 4 (PR #1, open, awaiting review, NOT merged);
+  feat/events-v1 = parked v2; archive/initial-mvp = the old 2-commit MVP.
+- Current layer: Phase 4 code-complete on phase-4/community-app. All 10 plan
+  tasks done. 118/118 tests green (13 files) against the live DB; build clean.
+- Migrations: 0001-0006 APPLIED and VERIFIED on the hosted project
+  (lebniekpmnoxughcsiko — Aditya's Supabase, reused for Phase 4 after wiping the
+  parked v2). rls.test.ts + whitelist-rls.test.ts green prove them live. Applied
+  via supabase db reset/push --db-url (project is not linked to the CLI).
+- Un-run e2e flows: V1 has NO working auth (no OTP action, no /login route,
+  /auth is a Phase 1 stub). The signup -> RSVP -> ticket -> run -> feedback
+  browser walk is therefore NOT possible via UI and was NOT done. Phase 4's
+  access rules are verified at the RLS layer by the integration suite instead.
+  Wiring real auth is the next foundation task before the app is usable.
 - Pending production swaps: none pending; production launch (Vercel domain,
-  Resend SPF/DKIM, whitelist seeding) is explicitly deferred out of Phase 4.
-- Blocking open questions: none for Phase 4 (resolved in the 2026-07-07 grill).
-  Deferred, non-blocking: 24h reminder email, feedback granularity revisit.
+  Resend SPF/DKIM, whitelist seeding) still deferred.
+- Blocking open questions: none. Deferred: real auth (OTP login), 24h reminder
+  email, feedback granularity, whether knowledge/ + CLAUDE.md merge onto main.
 
 ## Where to find what
 
