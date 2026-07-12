@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
 import { createClient } from "@/lib/supabase/server";
-import { AuthError, requireAuth, requireAdmin, requireOwner } from "@/lib/auth";
+import { AuthError, requireAuth, requireAdmin, requireOwner, requireTrusted } from "@/lib/auth";
 
 const BASE_PROFILE = {
   id: "user-1",
@@ -105,5 +105,25 @@ describe("requireOwner", () => {
     await expect(requireOwner("event-abc")).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+  });
+});
+
+describe("requireTrusted", () => {
+  it("returns the profile for a trusted user", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeMockClient({ profile: { ...BASE_PROFILE, is_trusted: true } }) as never
+    );
+    const result = await requireTrusted();
+    expect(result.profile.is_trusted).toBe(true);
+  });
+
+  it("throws FORBIDDEN for an untrusted user", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeMockClient() as never);
+    await expect(requireTrusted()).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("throws UNAUTHORIZED when signed out", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeMockClient({ user: null }) as never);
+    await expect(requireTrusted()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 });

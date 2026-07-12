@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { Button } from "@/components/ui/button";
-import { approveEvent, takedownEvent, setTrust } from "./actions";
+import { approveEvent, takedownEvent, addToWhitelist, removeFromWhitelist } from "./actions";
+import { BRAND } from "@/lib/brand";
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -18,7 +19,7 @@ export default async function AdminPage() {
     .single();
   if (!adminProfile?.is_admin) redirect("/");
 
-  const [{ data: pendingEvents }, { data: publishedEvents }, { data: profiles }] =
+  const [{ data: pendingEvents }, { data: publishedEvents }, { data: profiles }, { data: whitelist }] =
     await Promise.all([
       supabase
         .from("events")
@@ -34,6 +35,10 @@ export default async function AdminPage() {
       createServiceClient()
         .from("profiles")
         .select("id, full_name, email, is_trusted, is_admin")
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("host_whitelist")
+        .select("email, added_by, created_at")
         .order("created_at", { ascending: true }),
     ]);
 
@@ -107,6 +112,47 @@ export default async function AdminPage() {
 
       <section className="space-y-4">
         <h2 className="text-base font-mono font-semibold border-b-2 border-on-background pb-2">
+          {BRAND.admin.whitelistHeading} ({whitelist?.length ?? 0})
+        </h2>
+        <p className="text-xs font-mono text-muted-foreground">{BRAND.admin.whitelistHint}</p>
+        <form action={addToWhitelist} className="flex gap-2">
+          <input
+            type="email"
+            name="email"
+            required
+            placeholder={BRAND.admin.whitelistPlaceholder}
+            className="flex-1 border-2 border-on-background bg-background px-3 py-2 font-mono text-sm"
+          />
+          <Button type="submit" size="sm">{BRAND.admin.whitelistAdd}</Button>
+        </form>
+        {!whitelist?.length ? (
+          <p className="text-sm font-mono text-muted-foreground">{BRAND.admin.whitelistEmpty}</p>
+        ) : (
+          <ul className="divide-y divide-on-background">
+            {whitelist.map((entry) => {
+              const removeAction = removeFromWhitelist.bind(null, entry.email);
+              return (
+                <li key={entry.email} className="flex items-center justify-between gap-4 py-3">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{entry.email}</p>
+                    <p className="text-xs font-mono text-muted-foreground">
+                      added {new Date(entry.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <form action={removeAction}>
+                    <Button type="submit" size="sm" variant="destructive">
+                      {BRAND.admin.whitelistRemove}
+                    </Button>
+                  </form>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-base font-mono font-semibold border-b-2 border-on-background pb-2">
           Members ({profiles?.length ?? 0})
         </h2>
         {!profiles?.length ? (
@@ -114,8 +160,6 @@ export default async function AdminPage() {
         ) : (
           <ul className="divide-y divide-on-background">
             {profiles.map((profile) => {
-              const trustOn = setTrust.bind(null, profile.id, true);
-              const trustOff = setTrust.bind(null, profile.id, false);
               return (
                 <li key={profile.id} className="flex items-center justify-between gap-4 py-3">
                   <div className="min-w-0">
@@ -128,11 +172,6 @@ export default async function AdminPage() {
                       {profile.is_trusted && " · trusted"}
                     </p>
                   </div>
-                  <form action={profile.is_trusted ? trustOff : trustOn}>
-                    <Button type="submit" size="sm" variant="outline">
-                      {profile.is_trusted ? "Revoke Trust" : "Trust"}
-                    </Button>
-                  </form>
                 </li>
               );
             })}

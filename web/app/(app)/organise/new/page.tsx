@@ -11,6 +11,13 @@ export default async function NewEventPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_trusted")
+    .eq("id", user.id)
+    .single();
+  if (!profile?.is_trusted) redirect("/organise");
+
   return (
     <div className="mx-auto max-w-2xl px-grid-margin py-stack-lg">
       <h1 className="mb-stack-lg font-serif text-headline-md font-black uppercase">

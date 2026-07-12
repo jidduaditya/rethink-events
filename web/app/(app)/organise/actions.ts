@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireTrusted } from "@/lib/auth";
 import { eventSchema } from "@/lib/validations/event";
 
 export type ActionState = {
@@ -34,7 +34,7 @@ export async function createEvent(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const { userId, supabase } = await requireAuth();
+  const { userId, supabase } = await requireTrusted();
   const parsed = parseFormData(formData);
   const result = eventSchema.safeParse(parsed);
   if (!result.success) return { error: result.error.flatten() };

@@ -12,6 +12,12 @@ export const BRAND = {
     upcoming: "UPCOMING",
     happeningNow: "HAPPENING NOW",
   },
+  dashboard: {
+    hosting: "HOSTING",
+    attending: "YOU'RE IN",
+    emptyCommitments: "Nothing on your calendar yet. Pick something below.",
+    manage: "MANAGE →",
+  },
   rsvp: {
     going: "I'M GOING",
     cancel: "CAN'T MAKE IT",
@@ -53,6 +59,14 @@ export const BRAND = {
     alreadySubmitted: "You've already left feedback for this event.",
     noFeedback: "No feedback yet.",
     hostHeading: "FEEDBACK",
+  },
+  admin: {
+    whitelistHeading: "HOST WHITELIST",
+    whitelistHint: "Whitelisted emails can create events. Everyone on this list, and only this list.",
+    whitelistPlaceholder: "member@example.com",
+    whitelistAdd: "ADD",
+    whitelistRemove: "REMOVE",
+    whitelistEmpty: "Nobody can host yet. Add the first email.",
   },
   manifesto: "We don't do panels. We do arguments. Bring data or leave.",
   footer: {
