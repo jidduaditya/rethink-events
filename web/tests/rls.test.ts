@@ -123,16 +123,15 @@ describe("events SELECT — admin", () => {
 
 // ─── events INSERT + trust-based initial state ───────────────────────────────
 describe("events INSERT — initial state trigger", () => {
-  it("untrusted host → pending_review", async () => {
-    const { data } = await hostClient
+  it("untrusted host insert is rejected outright (phase 4: whitelist-gated)", async () => {
+    const { error } = await hostClient
       .from("events")
       .insert({
         host_id: hostId, title: "New untrusted", city: "pune",
         starts_at: new Date(Date.now() + 86400_000).toISOString(),
         ends_at:   new Date(Date.now() + 90000_000).toISOString(),
-      })
-      .select("state").single();
-    expect(data?.state).toBe("pending_review");
+      });
+    expect(error).not.toBeNull();
   });
 
   it("trusted host → published immediately", async () => {
@@ -148,9 +147,9 @@ describe("events INSERT — initial state trigger", () => {
   });
 });
 
-// ─── admin approve flips host to trusted ─────────────────────────────────────
-describe("admin approve → trust flip", () => {
-  it("approving a pending event flips the host to is_trusted", async () => {
+// ─── phase 4: trust flip on approval was retired; whitelist is the only path ─
+describe("trust write paths", () => {
+  it("approving a pending event no longer flips the host to trusted", async () => {
     const newHostId = await makeUser("newhost@test.local");
     await setProfile(newHostId, { is_trusted: false });
 
@@ -159,7 +158,7 @@ describe("admin approve → trust flip", () => {
 
     const { data } = await admin
       .from("profiles").select("is_trusted").eq("id", newHostId).single();
-    expect(data?.is_trusted).toBe(true);
+    expect(data?.is_trusted).toBe(false);
   });
 });
 
@@ -200,16 +199,15 @@ describe("rsvp_to_event()", () => {
 // ─── security: review-queue bypass, identity spoofing, host_id reassignment ──
 describe("security — fixed vulnerabilities", () => {
   it("untrusted host cannot bypass review queue by sending state=published", async () => {
-    const { data } = await hostClient
+    const { error } = await hostClient
       .from("events")
       .insert({
         host_id: hostId, title: "Bypass attempt", city: "pune",
-        state: "published",  // should be overridden to pending_review
+        state: "published",
         starts_at: new Date(Date.now() + 86400_000).toISOString(),
         ends_at:   new Date(Date.now() + 90000_000).toISOString(),
-      })
-      .select("state").single();
-    expect(data?.state).toBe("pending_review");
+      });
+    expect(error).not.toBeNull(); // phase 4: insert itself is rejected
   });
 
   it("host cannot spoof host_name on insert", async () => {
