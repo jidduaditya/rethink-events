@@ -13,7 +13,7 @@ const CITY_ABBR: Record<string, string> = {
 
 const CITY_VALUES = ["bangalore", "pune", "delhi", "hyderabad"] as const;
 
-export default async function FeedPage({
+export default async function DashboardPage({
   searchParams,
 }: {
   searchParams: Promise<{ city?: string }>;
@@ -24,6 +24,9 @@ export default async function FeedPage({
     : null;
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Published events, city-filtered if set
   let q = supabase
@@ -32,74 +35,82 @@ export default async function FeedPage({
     .eq("state", "published")
     .order("starts_at");
   if (activeCity) q = q.eq("city", activeCity);
-
   const { data: rawEvents } = await q;
-  const safeEvents = rawEvents ?? [];
+  const published = rawEvents ?? [];
 
-  // Going counts: single query, aggregate in JS
-  const ids = safeEvents.map((e) => e.id);
+  // Member commitments: own events + going RSVPs (unfiltered by city tab)
+  let hosting: typeof published = [];
+  const myGoingIds = new Set<string>();
+  let profile: { goal: string | null; city: string | null; is_trusted: boolean } | null = null;
+
+  if (user) {
+    const [{ data: prof }, { data: myEvents }, { data: myRsvps }] = await Promise.all([
+      supabase.from("profiles").select("goal, city, is_trusted").eq("id", user.id).single(),
+      supabase
+        .from("events")
+        .select("id, title, city, venue, starts_at, ends_at, capacity, tags, host_name, featured_for")
+        .eq("host_id", user.id)
+        .not("state", "in", '("cancelled","taken_down")')
+        .gte("ends_at", new Date().toISOString())
+        .order("starts_at"),
+      supabase
+        .from("rsvps")
+        .select("event_id")
+        .eq("user_id", user.id)
+        .eq("status", "going"),
+    ]);
+    profile = prof;
+    hosting = myEvents ?? [];
+    for (const r of myRsvps ?? []) myGoingIds.add(r.event_id);
+  }
+
+  // Going counts for everything we might render
+  const allIds = [...new Set([...published.map((e) => e.id), ...hosting.map((e) => e.id)])];
   const goingMap = new Map<string, number>();
-  if (ids.length > 0) {
+  if (allIds.length > 0) {
     const { data: goingRows } = await supabase
       .from("rsvps")
       .select("event_id")
-      .in("event_id", ids)
+      .in("event_id", allIds)
       .eq("status", "going");
     for (const row of goingRows ?? []) {
       goingMap.set(row.event_id, (goingMap.get(row.event_id) ?? 0) + 1);
     }
   }
 
-  // Current user's profile + RSVP set
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let profile: { goal: string | null; city: string | null } | null = null;
-  const myGoingIds = new Set<string>();
-
-  if (user && ids.length > 0) {
-    const [{ data: prof }, { data: myRsvps }] = await Promise.all([
-      supabase.from("profiles").select("goal, city").eq("id", user.id).single(),
-      supabase
-        .from("rsvps")
-        .select("event_id")
-        .in("event_id", ids)
-        .eq("user_id", user.id)
-        .eq("status", "going"),
-    ]);
-    profile = prof;
-    for (const r of myRsvps ?? []) myGoingIds.add(r.event_id);
-  } else if (user) {
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("goal, city")
-      .eq("id", user.id)
-      .single();
-    profile = prof;
-  }
-
-  const now = new Date();
-  const events: FeedEvent[] = safeEvents.map((e) => ({
+  const withCount = (e: (typeof published)[number]): FeedEvent => ({
     ...e,
     going_count: goingMap.get(e.id) ?? 0,
-  }));
+  });
+
+  const now = new Date();
+  const events = published.map(withCount);
+  const hostingCards = hosting.map(withCount);
+  const hostingIds = new Set(hosting.map((e) => e.id));
 
   const happeningNow = events.filter(
     (e) => new Date(e.starts_at) <= now && new Date(e.ends_at) > now
   );
-
+  const attending = events.filter(
+    (e) => myGoingIds.has(e.id) && new Date(e.ends_at) > now && !hostingIds.has(e.id)
+  );
   const forYou =
     profile?.goal || profile?.city
       ? events.filter(
           (e) =>
             e.featured_for &&
             (e.featured_for.goal === profile!.goal ||
-              e.featured_for.city === profile!.city)
+              e.featured_for.city === profile!.city) &&
+            !hostingIds.has(e.id) &&
+            !myGoingIds.has(e.id)
         )
       : [];
+  const upcoming = events.filter(
+    (e) =>
+      new Date(e.starts_at) > now && !hostingIds.has(e.id) && !myGoingIds.has(e.id)
+  );
 
-  const upcoming = events.filter((e) => new Date(e.starts_at) > now);
+  const hasCommitments = hostingCards.length > 0 || attending.length > 0;
 
   return (
     <AppShell>
@@ -149,7 +160,46 @@ export default async function FeedPage({
           </section>
         )}
 
-        {/* For You — only for logged-in users with goal/city set */}
+        {/* Hosting — the member's own events, with a manage link */}
+        {hostingCards.length > 0 && (
+          <section className="mt-stack-xl">
+            <SectionHeader label={BRAND.dashboard.hosting} />
+            <div className="mt-stack-lg grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {hostingCards.map((e) => (
+                <div key={e.id}>
+                  <EventCard event={e} going={false} />
+                  <Link
+                    href={`/organise/${e.id}/run`}
+                    className="mt-2 inline-block font-mono text-label-data uppercase underline underline-offset-4 hover:text-primary"
+                  >
+                    {BRAND.dashboard.manage}
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* You're in — going RSVPs */}
+        {attending.length > 0 && (
+          <section className="mt-stack-xl">
+            <SectionHeader label={BRAND.dashboard.attending} />
+            <div className="mt-stack-lg grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {attending.map((e) => (
+                <EventCard key={e.id} event={e} going />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Signed-in, no commitments: nudge */}
+        {user && !hasCommitments && (
+          <p className="mt-stack-xl font-serif text-body-lg text-on-surface-variant">
+            {BRAND.dashboard.emptyCommitments}
+          </p>
+        )}
+
+        {/* For You */}
         {forYou.length > 0 && (
           <section className="mt-stack-xl">
             <SectionHeader label="FOR YOU" />
@@ -171,13 +221,18 @@ export default async function FeedPage({
           <SectionHeader label={BRAND.feed.upcoming} />
           {upcoming.length === 0 ? (
             <EmptyState>
-              {BRAND.empty.feed}{" "}
-              <Link
-                href="/organise"
-                className="underline underline-offset-4 hover:text-primary"
-              >
-                Host one.
-              </Link>
+              {BRAND.empty.feed}
+              {profile?.is_trusted && (
+                <>
+                  {" "}
+                  <Link
+                    href="/organise"
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
+                    Host one.
+                  </Link>
+                </>
+              )}
             </EmptyState>
           ) : (
             <div className="mt-stack-lg grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

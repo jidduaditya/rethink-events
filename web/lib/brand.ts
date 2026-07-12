@@ -12,6 +12,12 @@ export const BRAND = {
     upcoming: "UPCOMING",
     happeningNow: "HAPPENING NOW",
   },
+  dashboard: {
+    hosting: "HOSTING",
+    attending: "YOU'RE IN",
+    emptyCommitments: "Nothing on your calendar yet. Pick something below.",
+    manage: "MANAGE →",
+  },
   rsvp: {
     going: "I'M GOING",
     cancel: "CAN'T MAKE IT",
