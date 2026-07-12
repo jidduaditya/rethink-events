@@ -5,6 +5,7 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/auth", () => ({
   requireAuth: vi.fn(),
+  requireTrusted: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(public code: string) {
       super(code);
@@ -15,7 +16,7 @@ vi.mock("@/lib/auth", () => ({
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireTrusted } from "@/lib/auth";
 
 // Chainable supabase mock
 const mockSingle = vi.fn();
@@ -34,7 +35,7 @@ const mockSupabase = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(requireAuth).mockResolvedValue({
+  const authResult = {
     userId: "user-1",
     profile: {
       id: "user-1",
@@ -46,7 +47,9 @@ beforeEach(() => {
       city: null,
     },
     supabase: mockSupabase as any,
-  });
+  };
+  vi.mocked(requireAuth).mockResolvedValue(authResult);
+  vi.mocked(requireTrusted).mockResolvedValue(authResult);
   mockSingle.mockResolvedValue({ data: { id: "event-1" }, error: null });
   mockEqHostId.mockResolvedValue({ error: null }); // cancelEvent default
   mockUpdateSingle.mockResolvedValue({ data: { id: "event-1" }, error: null }); // updateEvent default
@@ -109,6 +112,11 @@ describe("createEvent", () => {
     const result = await createEvent(null, makeFormData());
     expect(result?.error.formErrors[0]).toBe("DB error");
     expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("createEvent rejects untrusted users", async () => {
+    vi.mocked(requireTrusted).mockRejectedValue(Object.assign(new Error("FORBIDDEN"), { code: "FORBIDDEN" }));
+    await expect(createEvent(null, makeFormData())).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
 

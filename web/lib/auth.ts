@@ -47,6 +47,12 @@ export async function requireAdmin() {
   return result;
 }
 
+export async function requireTrusted() {
+  const result = await requireAuth();
+  if (!result.profile.is_trusted) throw new AuthError("FORBIDDEN");
+  return result;
+}
+
 export async function requireOwner(eventId: string) {
   const { userId, profile, supabase } = await requireAuth();
   const { data: event } = await supabase

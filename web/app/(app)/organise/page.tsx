@@ -13,6 +13,12 @@ export default async function OrganisePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_trusted")
+    .eq("id", user.id)
+    .single();
+
   const { data: events } = await supabase
     .from("events")
     .select("id, title, city, starts_at, state")
@@ -25,9 +31,11 @@ export default async function OrganisePage() {
         <h1 className="font-serif text-headline-md font-black uppercase">
           MY EVENTS
         </h1>
-        <Link href="/organise/new" className={buttonVariants({ size: "sm" })}>
-          + NEW EVENT
-        </Link>
+        {profile?.is_trusted && (
+          <Link href="/organise/new" className={buttonVariants({ size: "sm" })}>
+            + NEW EVENT
+          </Link>
+        )}
       </div>
 
       {!events?.length ? (
