@@ -54,6 +54,14 @@ export const BRAND = {
     noFeedback: "No feedback yet.",
     hostHeading: "FEEDBACK",
   },
+  admin: {
+    whitelistHeading: "HOST WHITELIST",
+    whitelistHint: "Whitelisted emails can create events. Everyone on this list, and only this list.",
+    whitelistPlaceholder: "member@example.com",
+    whitelistAdd: "ADD",
+    whitelistRemove: "REMOVE",
+    whitelistEmpty: "Nobody can host yet. Add the first email.",
+  },
   manifesto: "We don't do panels. We do arguments. Bring data or leave.",
   footer: {
     links: ["TERMS", "PRIVACY", "CAREERS", "CONTACT"],
